@@ -26,6 +26,8 @@ Do not squash a whole task into one commit unless the user asks.
 
 Author **and** committer must be `Troy-LL <Troy-LL@users.noreply.github.com>` (GitHub rejects private committer emails).
 
+Stamp every commit in **GMT+8 (`+0800`)** with `GIT_AUTHOR_DATE` / `GIT_COMMITTER_DATE` — this machine’s local TZ is Pacific and must not be used. Recipe in `.cursor/skills/roboarena-engineering/SKILL.md`.
+
 ## Parallel coding, sequential landing
 
 - Parallel **coding** only on disjoint file sets (dependency DAG).
@@ -38,6 +40,11 @@ Author **and** committer must be `Troy-LL <Troy-LL@users.noreply.github.com>` (G
   4. `gh pr merge` through that PR
   5. Promote: open/merge a PR from the **integration branch → `master`** so `master` stays current
   6. Only then start the next task merge
+
+## Models
+
+- **Orchestrator (this chat):** Grok — reviews, PRs, merges, dispatch.
+- **Implementers / fixers:** composer 2.5 (`composer-2.5-fast`). Do not inherit the orchestrator model.
 
 ## Details
 
