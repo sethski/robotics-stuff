@@ -20,6 +20,8 @@ document resolves that trade-off and three others that fell out of it.
 | 4 | How do non-coders write code? | A **four-layer ladder**; the first three work offline with no API cost, Groq is the top rung only. |
 | 5 | Who decides which pin a part connects to? | **Auto-assign by default, with a guided wiring panel one tap away.** Dragging wires in 3D is post-MVP. |
 | 6 | What does Race show when the robot fails? | **Live sensor overlays plus a scrubbable replay.** AI failure explanation arrives with the Groq layer. |
+| 7 | How do you build with a finger? | **Select the part, then tap the destination.** No dragging; one interaction for mouse, touch, and keyboard. |
+| 8 | Must parts sit on predefined mounts? | **No — anywhere on a mounting surface, snapped to the chassis hole grid,** so every position stays physically buildable. |
 
 ---
 
@@ -269,7 +271,58 @@ confidently wrong, the explanation is presented next to the raw timeline data, n
 
 ---
 
-## 10. Error handling
+## 10. Decision 7 — Touch-first placement
+
+Build was designed around a mouse: drag a part, hover a snap point, drop. On the stated target
+device — a budget Android tablet — a finger hides what it is pointing at, and a one-finger drag
+already means "orbit the camera".
+
+**Select the part, then tap the destination.** Selecting a part from the palette lights every valid
+mount as a large target; tapping one fits the part. No dragging is involved, so one-finger drag stays
+free for orbiting and two fingers pan/zoom.
+
+**Why this over drag-and-drop:** it is the only option where the *same* interaction works with a
+mouse, a finger, and a keyboard, because "select, then choose a target" requires no pointer
+precision. That means one code path rather than a desktop path plus a touch path, and keyboard
+accessibility comes free instead of as a retrofit. It is also the same idiom as the wiring panel
+(§8), so the app has one interaction grammar rather than two.
+
+**Layered later, optional:** magnetic drag-and-drop for mouse users who expect to drag. A slot list
+(named mounts with dropdowns) remains available as an accessibility fallback, not as the primary UI —
+as the primary UI it would stop the app being a 3D builder at all.
+
+---
+
+## 11. Decision 8 — Placement freedom
+
+**The problem with snap points alone:** they encode our guess at the best layout. Part of the point
+of the product is letting someone find a better one, and a fixed mount set forecloses that.
+
+**Parts may be placed anywhere on a mounting surface, snapped to the chassis hole grid.** The grid is
+a real fabrication pitch (2.54mm perfboard-style), not an arbitrary visual grid.
+
+This resolves the tension with Pillar 4 rather than trading against it. Continuous free placement
+would let a user position a sensor where there is no hole to bolt it to, making the exported wiring
+diagram and parts list describe something unbuildable. Grid snapping gives the user every position
+they actually want while guaranteeing each one is drillable and mountable in the real world.
+
+**How it combines with §10:** selecting a part highlights the recommended mounts as large targets
+*and* reveals a faint grid across the valid surfaces. Tapping a recommended mount is a single tap for
+a beginner; tapping anywhere else places the part at the nearest grid cell. After placement, nudge
+controls move it a cell at a time and rotate in fixed steps — precise adjustment without precise
+pointing.
+
+**Feedback while placing:** cells occupied by another part reject the drop, and the existing
+weight/balance indicator (PRD §7.1) updates live so a user can see the cost of an off-centre choice.
+
+**Contract impact (§4):** `PartDef` gains a mount footprint — which grid cells the part occupies —
+and surfaces gain a `MountSurface` definition carrying grid pitch, extent, and orientation. Both are
+declared alongside geometry, consistent with the existing rule that a part's metadata cannot drift
+from its mesh.
+
+---
+
+## 12. Error handling
 
 **Principle: user mistakes are content, not failures.** This is a teaching tool; the interesting
 errors deserve real treatment.
@@ -289,7 +342,7 @@ errors deserve real treatment.
 
 ---
 
-## 11. Testing
+## 13. Testing
 
 - **Part definitions** are pure functions: call `build()` and assert triangle count, bounding box,
   snap point positions, and mass. No rendering involved.
@@ -303,7 +356,7 @@ errors deserve real treatment.
 
 ---
 
-## 12. Changes required to PRD.md
+## 14. Changes required to PRD.md
 
 1. §9.1 — remove `three-bvh-csg`; add drei `Environment`/`Lightformer`, `ContactShadows`,
    `three-mesh-bvh`. Note `manifold-3d` as the boolean option *if ever needed*.
@@ -314,24 +367,36 @@ errors deserve real treatment.
 5. New section — the app shell (three modes) and the code assistance ladder.
 6. New section — the search-open-source-first principle (§2 here), as a project-wide rule.
 7. §13 — close the model-licensing question; add the AI cost-cap question if usage grows.
+8. §7.1 — replace "drag-and-drop part placement" with select-then-tap (§10 here), and replace the
+   fixed snap-point model with grid placement on mounting surfaces (§11 here).
+9. §7.1a — extend the `PartDef` example with the mount footprint and `MountSurface` grid definition.
+10. §7.4 — add live sensor overlays and the replay recorder to the competition simulation section.
+11. §6 (MVP scope) — add the wiring panel, replay timeline, and grid placement; they are MVP, not
+    stretch.
+12. §12 (Roadmap) — Phase 1 gains the wiring panel and replay; Phase 2 gains 3D wire dragging,
+    drag-and-drop placement, and the Groq layer.
 
 ---
 
-## 13. Out of scope
+## 15. Out of scope
 
 - Postprocessing (N8AO, bloom) — post-MVP, device-gated.
 - Workbench layout — post-MVP.
 - Codeable peripherals — MVP is board-only.
 - Dragging wires in 3D — post-MVP (§8).
 - AI failure explanation in Race — arrives with the Groq layer, not before (§9).
+- Magnetic drag-and-drop placement — optional layer on top of tap-to-place, post-MVP (§10).
+- Continuous (non-grid) part positioning — deliberately excluded; it would break buildability (§11).
 - Bring-your-own-key for Groq — revisit if educators ask for classroom-scale usage.
 - Mesh booleans of any kind.
 
 ---
 
-## 14. Still open
+## 16. Still open
 
-- **Touch interaction.** The target device is a budget Android tablet, but drag-and-drop 3D part
-  placement with snapping is hard without a mouse. The wiring panel (§8) is already tap-based for
-  this reason; Build itself has not been designed for touch. Needs its own pass before
-  implementation.
+Nothing blocking implementation planning. Known unknowns to revisit with real users:
+
+- Whether beginners find Tier 2's schematic look clarifying or unconvincing (§3, PRD §13).
+- Whether anyone opens the wiring panel — if not, Pillar 4 needs rethinking, not more UI (§8).
+- Whether the three offline assistance layers are enough, making Groq optional rather than expected
+  (§7).
