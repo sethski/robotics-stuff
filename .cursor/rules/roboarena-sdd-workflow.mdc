@@ -1,60 +1,56 @@
 ---
-description: RoboArena SDD workflow — task branches, granular commits, deferred sequential merges
+description: Git/branching + CodeGraph workflow aligned with global ~/.claude/CLAUDE.md; RoboArena identity and delivery constraints
 alwaysApply: true
 ---
 
 # RoboArena delivery workflow
 
-## Branches
+Aligned with global `~/.claude/CLAUDE.md`. Where this rule and that file agree, follow both. Repo-only extras (identity, ledger, engineering) are below.
 
-- Never commit product work on `master`.
-- Every plan task / component slice gets its **own branch**:
-  - `feat/task-<N>-<slug>`
-  - `feat/task-<N>a-<slug>` for a parallel slice
-- Base: current `master` tip, **or** a parent task branch tip when the task depends on unfinished sibling work (stack the branch; do not merge early just to unblock).
-- Implementers commit only on their task branch.
+## Git & branching
 
-## Granular commits
+- **No AI attribution.** Never add `Co-Authored-By: Claude` (or any AI co-author). Omit it entirely — no substitute line.
+- **Check the current branch first.** Before any branch decision, read the current branch — the user may already be on the branch they want. If so, use it.
+- **Branch per task/phase, not per component; never build on the default branch.** One branch covers a whole task or phase, spanning however many components it touches. Reuse before creating: check current branch and existing task branches first. For parallel/independent tasks, cut multiple branches from origin at the same time, one per task — develop each in isolation, then PR/commit/push back to the parent branch only once all of them are done. When unsure whether something is its own task/phase or part of the current one, ask.
+- **Naming (when creating a branch):** `feat/task-<N>-<slug>` (or `feat/<phase>-<slug>`). Base: current `master` tip, or a parent task branch tip when stacked on unfinished sibling work.
+- **Small work doesn't get a branch.** One-liners, typos, tweaks, fixes scoped to a file or two → commit on the current branch. Exception: if the current branch is the default branch (`master` / `main`), still branch first.
+- **Never commit product work on `master`.**
+- **Commit by logical chunk, not per-component.** Group related changes that belong together into one commit, even across files — don't mechanically split every component (or every RED/GREEN step) into its own commit. Only split when changes are genuinely independent. Each commit should stand alone with a clear message. Not one end-of-task dump.
+- **Push once per task/phase by default** — commit as you go; one push when the task/phase is done. Push mid-work only when needed (user asks, or teammates need the remote). Don't leave a finished task unpushed.
+- **PR/merge to master is never automatic.** Never open a PR or merge to `master` without explicit confirmation — always ask first.
 
-One logical change per commit. Typical task shape:
+## Parallel tasks and landing
 
-1. failing test (RED)
-2. minimal implementation (GREEN)
-3. polish only if needed
+- Parallel **coding** on disjoint files / worktrees is fine.
+- For a plan wave with multiple independent tasks: develop each on its own branch; only after they are done, ask whether to PR/merge — and then land **one branch at a time** in dependency order (no parallel merges).
+- Do not merge mid-wave just to unblock unless the user asks.
 
-Do not squash a whole task into one commit unless the user asks.
+## Identity (repo)
 
 Author **and** committer must be `Troy-LL <Troy-LL@users.noreply.github.com>` (GitHub rejects private committer emails).
 
 Stamp every commit in **GMT+8 (`+0800`)** with `GIT_AUTHOR_DATE` / `GIT_COMMITTER_DATE` — this machine’s local TZ is Pacific and must not be used. Recipe in `.cursor/skills/roboarena-engineering/SKILL.md`.
 
-## Phase A — develop and push (no merges)
-
-While any plan tasks remain unfinished:
-
-1. Implement on the task branch (granular commits).
-2. `git push -u origin HEAD`.
-3. Optionally open a PR into `master` as **draft** / leave unmerged for review later.
-4. **Do not merge** the task branch into `master` (or integration) yet.
-5. Start the next task (parallel only on disjoint files / worktrees).
-
-Mark the ledger: `pushed, awaiting batch merge`.
-
-## Phase B — sequential land to master (only when all branches for the plan wave are done)
-
-When every task branch for the current plan wave is pushed and review-clean:
-
-1. Merge **one branch at a time** into `master` (via `gh pr merge` or equivalent), in dependency order.
-2. Finish that merge (resolve conflicts on that PR) before starting the next.
-3. Parallel **coding** was fine; parallel **landing** is still forbidden.
-4. Do not promote mid-wave. No merge-after-each-task.
-
 ## Models
 
-- **Orchestrator (this chat):** Grok — reviews, PRs, merges, dispatch.
-- **Implementers / fixers:** composer 2.5 (`composer-2.5-fast`). Do not inherit the orchestrator model.
+- **Orchestrator (this chat):** reviews, PRs, merges, dispatch.
+- **Implementers / fixers:** `composer-2.5-fast`. Do not inherit the orchestrator model.
+
+## Code navigation
+
+CodeGraph is the only graph system in use — never assume a `code-review-graph` MCP exists. No `.codegraph/` in the repo, or no CodeGraph available: use Grep/Glob/Read.
+
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+
+- **MCP tool** (when available): `codegraph_explore` — relevant symbols' verbatim source plus call paths. Name a file or symbol in the query to read current line-numbered source.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"`.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+
+After `explore`, go surgical: `codegraph node`, `callers`/`callees`, `impact` / `affected`, `query`/`status`/`files`. Run `codegraph sync` after a batch of edits.
 
 ## Details
 
-Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`  
-Engineering constraints: `.cursor/skills/roboarena-engineering/SKILL.md`
+Full SDD procedure: `.cursor/skills/roboarena-sdd/SKILL.md`  
+Engineering constraints: `.cursor/skills/roboarena-engineering/SKILL.md`  
+SDD ledger: `.superpowers/sdd/progress.md` (gitignored)

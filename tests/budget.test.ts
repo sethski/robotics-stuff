@@ -1,13 +1,26 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildPart } from '../src/geometry/buildPart';
+import { battery } from '../src/parts/battery';
 import { chassis } from '../src/parts/chassis';
-import { wheel } from '../src/parts/wheel';
+import { irSensor } from '../src/parts/irSensor';
+import { motor } from '../src/parts/motor';
 import { ultrasonic } from '../src/parts/ultrasonic';
+import { uno } from '../src/parts/uno';
+import { wheel } from '../src/parts/wheel';
 
-/** The reference robot from PRD §6: one chassis, two wheels, one ultrasonic. */
 function referenceRobot() {
-  const parts = [buildPart(chassis), buildPart(wheel), buildPart(wheel), buildPart(ultrasonic)];
+  const parts = [
+    buildPart(chassis),
+    buildPart(uno),
+    buildPart(motor),
+    buildPart(motor),
+    buildPart(wheel),
+    buildPart(wheel),
+    buildPart(irSensor),
+    buildPart(ultrasonic),
+    buildPart(battery),
+  ];
   return {
     triangleCount: parts.reduce((sum, p) => sum + p.triangleCount, 0),
     drawCalls: parts.reduce((sum, p) => sum + p.drawCalls, 0),

@@ -1,6 +1,6 @@
 # RoboArena — Claude / agent instructions
 
-This file is the **project** override. When working in this repo, it wins over global `~/CLAUDE.md` / `~/.claude/CLAUDE.md` on conflicting git workflow advice.
+Git/branching follows global `~/.claude/CLAUDE.md`. Cursor always-on rule `.cursor/rules/roboarena-sdd-workflow.mdc` carries that plus repo identity. This file adds RoboArena engineering context only — it does **not** override global git rules.
 
 ## Identity
 
@@ -11,15 +11,13 @@ Commit as **Troy-LL** (`Troy-LL@users.noreply.github.com`) for both author and c
 Cursor always-on rule: `.cursor/rules/roboarena-sdd-workflow.mdc`  
 Skill: `.cursor/skills/roboarena-sdd/SKILL.md`
 
-Summary:
+Summary (matches global):
 
-1. One branch per task / component slice (`feat/task-N-slug`).
-2. Granular commits on that branch (test → implement → polish), GMT+8 stamps.
-3. **Phase A:** push every task branch (draft PRs OK). **Do not merge yet.**
-4. **Phase B:** only after the whole plan wave is pushed — merge into `master` **one branch at a time**, dependency order.
-5. Parallel coding on disjoint files/worktrees is fine; parallel merges are not.
-
-Never commit product work directly on `master`. Never merge mid-wave just because one task finished.
+1. Branch per **task/phase** (not per component); check current branch before creating; small work stays on current branch (except on `master`).
+2. Commit by **logical chunk**; push once per task/phase by default; GMT+8 stamps.
+3. Parallel coding on disjoint files/worktrees is fine; land merges **one at a time** after asking.
+4. **Never** open a PR or merge to `master` without explicit confirmation.
+5. Never commit product work directly on `master`.
 
 ## Engineering
 
