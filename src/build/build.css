@@ -124,6 +124,43 @@
   transition: width 0.2s;
 }
 
+.build-snap-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(28, 31, 38, 0.92);
+  border: 1px solid #2a2d34;
+  border-radius: 0.375rem;
+  max-width: 14rem;
+}
+
+.build-snap-targets-title {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #b8bcc4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.build-snap-target-btn {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #3d4554;
+  border-radius: 0.25rem;
+  background: #252830;
+  color: #e8eaed;
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.build-snap-target-btn:hover {
+  background: #2d3340;
+  border-color: #5fd38d;
+}
+
 .build-nudge {
   display: flex;
   flex-direction: column;

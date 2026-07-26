@@ -27,7 +27,16 @@ function snapById(partId: string, snapId: string) {
 
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
-export function worldPosition(design: RobotDesign, instanceId: string): THREE.Vector3 {
+export function worldPosition(
+  design: RobotDesign,
+  instanceId: string,
+  visited: Set<string> = new Set(),
+): THREE.Vector3 {
+  if (visited.has(instanceId)) {
+    throw new Error(`Placement cycle detected at instance ${instanceId}`);
+  }
+  visited.add(instanceId);
+
   const part = findPart(design, instanceId);
   const placement = part.placement;
 
@@ -37,7 +46,7 @@ export function worldPosition(design: RobotDesign, instanceId: string): THREE.Ve
 
   if (placement.kind === 'snap') {
     const host = findPart(design, placement.hostInstanceId);
-    const hostPos = worldPosition(design, host.instanceId);
+    const hostPos = worldPosition(design, host.instanceId, visited);
     const hostSnap = snapById(host.partId, placement.hostSnapId);
     const partSnap = snapById(part.partId, placement.partSnapId);
     return hostPos
@@ -53,10 +62,14 @@ export function worldPosition(design: RobotDesign, instanceId: string): THREE.Ve
     surface.origin[1] + placement.row * surface.pitch,
     surface.origin[2],
   );
-  return local.applyMatrix4(worldMatrix(design, host.instanceId));
+  return local.applyMatrix4(worldMatrix(design, host.instanceId, visited));
 }
 
-export function worldQuaternion(design: RobotDesign, instanceId: string): THREE.Quaternion {
+export function worldQuaternion(
+  design: RobotDesign,
+  instanceId: string,
+  visited: Set<string> = new Set(),
+): THREE.Quaternion {
   const part = findPart(design, instanceId);
   const placement = part.placement;
 
@@ -64,7 +77,7 @@ export function worldQuaternion(design: RobotDesign, instanceId: string): THREE.
     return new THREE.Quaternion();
   }
 
-  const hostQuat = worldQuaternion(design, placement.hostInstanceId);
+  const hostQuat = worldQuaternion(design, placement.hostInstanceId, visited);
 
   if (placement.kind === 'grid') {
     const localRot = new THREE.Quaternion().setFromAxisAngle(
@@ -77,11 +90,15 @@ export function worldQuaternion(design: RobotDesign, instanceId: string): THREE.
   return hostQuat.clone();
 }
 
-export function worldMatrix(design: RobotDesign, instanceId: string): THREE.Matrix4 {
+export function worldMatrix(
+  design: RobotDesign,
+  instanceId: string,
+  visited: Set<string> = new Set(),
+): THREE.Matrix4 {
   const matrix = new THREE.Matrix4();
   matrix.compose(
-    worldPosition(design, instanceId),
-    worldQuaternion(design, instanceId),
+    worldPosition(design, instanceId, visited),
+    worldQuaternion(design, instanceId, visited),
     new THREE.Vector3(1, 1, 1),
   );
   return matrix;

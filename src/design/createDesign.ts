@@ -6,6 +6,18 @@ export function newInstanceId(prefix = 'p'): string {
   return `${prefix}_${nextId.toString(36)}`;
 }
 
+/** Bump the instance-id counter so new IDs never collide with loaded designs. */
+export function syncInstanceIdCounter(design: RobotDesign): void {
+  let max = nextId;
+  for (const part of design.parts) {
+    const match = /^[a-z0-9-]+_([0-9a-z]+)$/i.exec(part.instanceId);
+    if (!match) continue;
+    const n = parseInt(match[1], 36);
+    if (!Number.isNaN(n) && n >= max) max = n + 1;
+  }
+  nextId = max;
+}
+
 function placed(partId: string, extras: Partial<PlacedPart> = {}): PlacedPart {
   return {
     instanceId: newInstanceId(partId),

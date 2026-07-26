@@ -19,4 +19,29 @@ describe('transforms', () => {
     const pos = worldPosition(d, w);
     expect(pos.distanceTo(new THREE.Vector3(-0.07, 0.05, 0))).toBeLessThan(1e-6);
   });
+
+  it('throws on placement cycles', () => {
+    const a = newInstanceId('a');
+    const b = newInstanceId('b');
+    const d = {
+      ...createEmptyDesign(),
+      parts: [
+        {
+          instanceId: a,
+          partId: 'wheel-65',
+          params: {},
+          placement: { kind: 'snap', hostInstanceId: b, hostSnapId: 'shaft', partSnapId: 'shaft' },
+          pinMap: {},
+        },
+        {
+          instanceId: b,
+          partId: 'wheel-65',
+          params: {},
+          placement: { kind: 'snap', hostInstanceId: a, hostSnapId: 'shaft', partSnapId: 'shaft' },
+          pinMap: {},
+        },
+      ],
+    };
+    expect(() => worldPosition(d, a)).toThrow(/cycle detected/i);
+  });
 });

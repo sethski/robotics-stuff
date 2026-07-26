@@ -21,7 +21,9 @@ export function WiringPanel() {
   const pendingKind = pendingPartPin
     ? def.pins.find((p) => p.id === pendingPartPin)?.kind
     : undefined;
-  const validBoard = pendingKind ? validBoardPinsFor(pendingKind, design, selectedId) : [];
+  const validBoard = pendingKind
+    ? validBoardPinsFor(pendingKind, design, selectedId, pendingPartPin ?? undefined)
+    : [];
 
   function onPartPinClick(pinId: string) {
     setPendingPartPin((prev) => (prev === pinId ? null : pinId));

@@ -50,4 +50,45 @@ describe('pin assignment', () => {
     expect(usedBoardPins(design)).toContain('D5');
     expect(usedBoardPins(design)).not.toContain('D3');
   });
+
+  it('assigns distinct digital pins to ultrasonic trig and echo', () => {
+    const sensorId = newInstanceId('s');
+    let design = withParts([
+      { instanceId: newInstanceId('u'), partId: 'uno-r3', params: {}, placement: null, pinMap: {} },
+      { instanceId: sensorId, partId: 'hc-sr04', params: {}, placement: null, pinMap: {} },
+    ]);
+    design = autoAssignPins(design, sensorId);
+    const sensor = design.parts.find((p) => p.instanceId === sensorId)!;
+    expect(sensor.pinMap.trig).toBeTruthy();
+    expect(sensor.pinMap.echo).toBeTruthy();
+    expect(sensor.pinMap.trig).not.toBe(sensor.pinMap.echo);
+  });
+
+  it('assigns distinct analog pins to IR left and right', () => {
+    const sensorId = newInstanceId('s');
+    let design = withParts([
+      { instanceId: newInstanceId('u'), partId: 'uno-r3', params: {}, placement: null, pinMap: {} },
+      { instanceId: sensorId, partId: 'ir-line-pair', params: {}, placement: null, pinMap: {} },
+    ]);
+    design = autoAssignPins(design, sensorId);
+    const sensor = design.parts.find((p) => p.instanceId === sensorId)!;
+    expect(sensor.pinMap.left).toMatch(/^A[0-5]$/);
+    expect(sensor.pinMap.right).toMatch(/^A[0-5]$/);
+    expect(sensor.pinMap.left).not.toBe(sensor.pinMap.right);
+  });
+
+  it('reassignPin rejects a board pin already used on the same part', () => {
+    const sensorId = newInstanceId('s');
+    const design = withParts([
+      { instanceId: newInstanceId('u'), partId: 'uno-r3', params: {}, placement: null, pinMap: {} },
+      {
+        instanceId: sensorId,
+        partId: 'hc-sr04',
+        params: {},
+        placement: null,
+        pinMap: { trig: 'D2', echo: 'D3', vcc: '5V', gnd: 'GND' },
+      },
+    ]);
+    expect(() => reassignPin(design, sensorId, 'echo', 'D2')).toThrow(/already in use/);
+  });
 });

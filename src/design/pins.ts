@@ -45,18 +45,22 @@ export function isBoardPinAvailable(
   design: RobotDesign,
   boardPin: BoardPinId,
   exceptInstanceId?: string,
+  exceptPartPinId?: string,
 ): boolean {
   if (SHAREABLE.has(boardPin)) return true;
   for (const part of design.parts) {
-    if (part.instanceId === exceptInstanceId) continue;
-    if (Object.values(part.pinMap).includes(boardPin)) return false;
+    for (const [partPinId, mapped] of Object.entries(part.pinMap)) {
+      if (mapped !== boardPin) continue;
+      if (part.instanceId === exceptInstanceId && partPinId === exceptPartPinId) continue;
+      return false;
+    }
   }
   return true;
 }
 
-function pickPin(design: RobotDesign, kind: PinKind, exceptInstanceId: string): BoardPinId | null {
+function pickPin(design: RobotDesign, kind: PinKind, instanceId: string): BoardPinId | null {
   const candidate = UNO_PINS.find(
-    (p) => p.kinds.includes(kind) && isBoardPinAvailable(design, p.id, exceptInstanceId),
+    (p) => p.kinds.includes(kind) && isBoardPinAvailable(design, p.id, instanceId),
   );
   return candidate?.id ?? null;
 }
@@ -90,7 +94,7 @@ export function reassignPin(
   partPinId: string,
   boardPin: BoardPinId,
 ): RobotDesign {
-  if (!isBoardPinAvailable(design, boardPin, instanceId)) {
+  if (!isBoardPinAvailable(design, boardPin, instanceId, partPinId)) {
     throw new Error(`Board pin ${boardPin} is already in use`);
   }
   const target = design.parts.find((p) => p.instanceId === instanceId);

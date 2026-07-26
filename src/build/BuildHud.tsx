@@ -1,8 +1,46 @@
 import { useDesign } from '../state/DesignContext';
+import { listSnapTargets } from '../design/placement';
+import { getPart } from '../parts/registry';
 import { BalanceMeter } from './BalanceMeter';
 import { PartPalette } from './PartPalette';
 import { WiringPanel } from './WiringPanel';
 import './build.css';
+
+function SnapPlacementControls() {
+  const { design, placeSnap } = useDesign();
+  const selectedId = design.selectedInstanceId;
+  if (!selectedId) return null;
+
+  const selected = design.parts.find((p) => p.instanceId === selectedId);
+  if (!selected || selected.placement !== null) return null;
+
+  const targets = listSnapTargets(design, selectedId);
+  if (targets.length === 0) return null;
+
+  return (
+    <div className="build-snap-targets" role="list" aria-label="Snap placement targets">
+      <h4 className="build-snap-targets-title">Snap to</h4>
+      {targets.map((t) => {
+        const host = design.parts.find((p) => p.instanceId === t.hostInstanceId);
+        const hostLabel = host ? getPart(host.partId).label : t.hostInstanceId;
+        const label = `${hostLabel} · ${t.hostSnapId}`;
+        return (
+          <button
+            key={`${t.hostInstanceId}:${t.hostSnapId}:${t.partSnapId}`}
+            type="button"
+            role="listitem"
+            className="build-snap-target-btn"
+            onClick={() =>
+              placeSnap(selectedId, t.hostInstanceId, t.hostSnapId, t.partSnapId)
+            }
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function NudgeControls() {
   const { design, nudge, rotateSelected } = useDesign();
@@ -47,6 +85,7 @@ export function BuildHud() {
       <PartPalette />
       <div className="build-bottom">
         <BalanceMeter />
+        <SnapPlacementControls />
         <NudgeControls />
       </div>
       <WiringPanel />

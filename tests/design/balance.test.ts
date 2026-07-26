@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyDesign, newInstanceId } from '../../src/design/createDesign';
+import { createEmptyDesign, newInstanceId, syncInstanceIdCounter } from '../../src/design/createDesign';
 import { balanceScore, centreOfMass } from '../../src/design/balance';
 import { canPlaceGrid, placeOnGrid } from '../../src/design/placement';
 
 describe('balance', () => {
   it('reports total mass of placed parts only', () => {
     const c = newInstanceId('c');
+    const trayMotor = newInstanceId('m');
     const d = {
       ...createEmptyDesign(),
       parts: [
@@ -13,18 +14,20 @@ describe('balance', () => {
           instanceId: c,
           partId: 'chassis-2wd',
           params: {},
-          placement: { kind: 'snap', hostInstanceId: c, hostSnapId: 'x', partSnapId: 'x' } as never,
+          placement: null,
+          pinMap: {},
+        },
+        {
+          instanceId: trayMotor,
+          partId: 'dc-motor',
+          params: {},
+          placement: null,
           pinMap: {},
         },
       ],
     };
-    // Root chassis at origin still counts.
-    d.parts[0].placement = null;
-    const com = centreOfMass({
-      ...d,
-      parts: [{ ...d.parts[0], placement: null }],
-    });
-    expect(com.totalMassKg).toBeGreaterThan(0.08);
+    const com = centreOfMass(d);
+    expect(com.totalMassKg).toBeCloseTo(0.085, 3);
   });
 
   it('worsens when a heavy pack sits far off-centre', () => {

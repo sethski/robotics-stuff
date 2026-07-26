@@ -15,3 +15,13 @@ export function loadDesign(): RobotDesign | null {
     return null;
   }
 }
+
+/** Apply a design mutation and persist the result. */
+export function mutateAndPersist(
+  design: RobotDesign,
+  mutate: (d: RobotDesign) => RobotDesign,
+): RobotDesign {
+  const next = mutate(design);
+  saveDesign(next);
+  return next;
+}

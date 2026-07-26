@@ -1,6 +1,18 @@
 import { getPart } from '../parts/registry';
 import type { MountSurface, SnapPoint } from '../parts/types';
-import type { GridPlacement, RobotDesign, SnapPlacement } from './types';
+import type { GridPlacement, PlacedPart, RobotDesign, SnapPlacement } from './types';
+
+function rotatedFootprint(partId: string, rotationSteps: number): { cols: number; rows: number } {
+  const fp = getPart(partId).footprint;
+  if (rotationSteps % 2 === 1) return { cols: fp.rows, rows: fp.cols };
+  return fp;
+}
+
+/** Snap hosts must be the root chassis or an already-placed part. */
+export function isValidSnapHost(part: PlacedPart): boolean {
+  if (part.partId === 'chassis-2wd' && part.placement === null) return true;
+  return part.placement !== null;
+}
 
 function hostSurface(hostPartId: string, surfaceId: string, params: Record<string, number>): MountSurface {
   const def = getPart(hostPartId);
@@ -24,7 +36,7 @@ export function occupiedCells(
     const p = part.placement;
     if (!p || p.kind !== 'grid') continue;
     if (p.hostInstanceId !== hostInstanceId || p.surfaceId !== surfaceId) continue;
-    const fp = getPart(part.partId).footprint;
+    const fp = rotatedFootprint(part.partId, p.rotationSteps);
     for (let c = 0; c < fp.cols; c += 1) {
       for (let r = 0; r < fp.rows; r += 1) {
         cells.add(`${p.col + c},${p.row + r}`);
@@ -41,12 +53,12 @@ export function canPlaceGrid(
   surfaceId: string,
   col: number,
   row: number,
-  _rotationSteps: number,
+  rotationSteps: number,
 ): boolean {
   const part = design.parts.find((p) => p.instanceId === instanceId);
   const host = design.parts.find((p) => p.instanceId === hostInstanceId);
   if (!part || !host) return false;
-  const fp = getPart(part.partId).footprint;
+  const fp = rotatedFootprint(part.partId, rotationSteps);
   if (fp.cols <= 0 || fp.rows <= 0) return false;
   const surface = hostSurface(host.partId, surfaceId, host.params);
   if (col < 0 || row < 0 || col + fp.cols > surface.cols || row + fp.rows > surface.rows) {
@@ -110,7 +122,7 @@ export function canPlaceSnap(
 ): boolean {
   const part = design.parts.find((p) => p.instanceId === instanceId);
   const host = design.parts.find((p) => p.instanceId === hostInstanceId);
-  if (!part || !host) return false;
+  if (!part || !host || !isValidSnapHost(host)) return false;
   const a = snapById(part.partId, partSnapId);
   const b = snapById(host.partId, hostSnapId);
   if (a.type !== b.type) return false;
@@ -168,7 +180,7 @@ export function listSnapTargets(
   const partSnaps = getPart(part.partId).snaps;
   const out: Array<{ hostInstanceId: string; hostSnapId: string; partSnapId: string }> = [];
   for (const host of design.parts) {
-    if (host.instanceId === instanceId) continue;
+    if (host.instanceId === instanceId || !isValidSnapHost(host)) continue;
     for (const hostSnap of getPart(host.partId).snaps) {
       for (const partSnap of partSnaps) {
         if (

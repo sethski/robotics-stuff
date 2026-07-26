@@ -7,8 +7,11 @@ export function validBoardPinsFor(
   kind: PinKind,
   design: RobotDesign,
   instanceId: string,
+  exceptPartPinId?: string,
 ): BoardPinId[] {
   return UNO_PINS.filter(
-    (pin) => pin.kinds.includes(kind) && isBoardPinAvailable(design, pin.id, instanceId),
+    (pin) =>
+      pin.kinds.includes(kind) &&
+      isBoardPinAvailable(design, pin.id, instanceId, exceptPartPinId),
   ).map((pin) => pin.id);
 }

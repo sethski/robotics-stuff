@@ -1,6 +1,11 @@
 import { getPart } from '../parts/registry';
-import type { RobotDesign } from './types';
+import type { PlacedPart, RobotDesign } from './types';
 import { worldPosition } from './transforms';
+
+/** Parts visible in the scene: root chassis or anything with a placement. */
+function isSceneVisible(part: PlacedPart): boolean {
+  return part.placement !== null || part.partId === 'chassis-2wd';
+}
 
 export function centreOfMass(design: RobotDesign): {
   x: number;
@@ -13,6 +18,7 @@ export function centreOfMass(design: RobotDesign): {
   let mz = 0;
   let m = 0;
   for (const part of design.parts) {
+    if (!isSceneVisible(part)) continue;
     const mass = getPart(part.partId).massKg;
     const p = worldPosition(design, part.instanceId);
     mx += mass * p.x;
