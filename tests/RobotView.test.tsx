@@ -67,35 +67,13 @@ describe('RobotView helpers', () => {
 
 describe('MountTargets helpers', () => {
   it('maps a deck hit to the nearest grid cell', () => {
-    const chassisId = newInstanceId('c');
-    const sensorId = newInstanceId('s');
-    const design = {
-      ...createEmptyDesign(),
-      selectedInstanceId: sensorId,
-      parts: [
-        {
-          instanceId: chassisId,
-          partId: 'chassis-2wd',
-          params: {},
-          placement: null,
-          pinMap: {},
-        },
-        {
-          instanceId: sensorId,
-          partId: 'hc-sr04',
-          params: {},
-          placement: null,
-          pinMap: {},
-        },
-      ],
-    };
     const surface = getPart('chassis-2wd').surfaces![0];
     const hit = new THREE.Vector3(
       surface.origin[0] + 2 * surface.pitch,
       surface.origin[1] + 3 * surface.pitch,
       surface.origin[2],
     );
-    const cell = gridCellFromWorldPoint(hit, design, chassisId, surface);
+    const cell = gridCellFromWorldPoint(hit, surface);
     expect(cell).toEqual({ col: 2, row: 3 });
   });
 

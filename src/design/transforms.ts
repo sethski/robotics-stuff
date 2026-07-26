@@ -27,6 +27,20 @@ function snapById(partId: string, snapId: string) {
 
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
+function quaternionFromUnitVectors(from: THREE.Vector3, to: THREE.Vector3): THREE.Quaternion {
+  const q = new THREE.Quaternion();
+  const dot = from.dot(to);
+  if (dot > 0.999999) return q;
+  if (dot < -0.999999) {
+    const axis = new THREE.Vector3(1, 0, 0);
+    if (Math.abs(from.dot(axis)) > 0.9) axis.set(0, 1, 0);
+    axis.cross(from).normalize();
+    q.setFromAxisAngle(axis, Math.PI);
+    return q;
+  }
+  return q.setFromUnitVectors(from, to);
+}
+
 export function worldPosition(
   design: RobotDesign,
   instanceId: string,
@@ -70,6 +84,11 @@ export function worldQuaternion(
   instanceId: string,
   visited: Set<string> = new Set(),
 ): THREE.Quaternion {
+  if (visited.has(instanceId)) {
+    throw new Error(`Placement cycle detected at instance ${instanceId}`);
+  }
+  visited.add(instanceId);
+
   const part = findPart(design, instanceId);
   const placement = part.placement;
 
@@ -87,7 +106,13 @@ export function worldQuaternion(
     return hostQuat.clone().multiply(localRot);
   }
 
-  return hostQuat.clone();
+  const host = findPart(design, placement.hostInstanceId);
+  const hostSnap = snapById(host.partId, placement.hostSnapId);
+  const partSnap = snapById(part.partId, placement.partSnapId);
+  const partNormal = new THREE.Vector3(...partSnap.normal);
+  const hostNormal = new THREE.Vector3(...hostSnap.normal);
+  const alignQuat = quaternionFromUnitVectors(partNormal, hostNormal);
+  return hostQuat.clone().multiply(alignQuat);
 }
 
 export function worldMatrix(
@@ -97,8 +122,8 @@ export function worldMatrix(
 ): THREE.Matrix4 {
   const matrix = new THREE.Matrix4();
   matrix.compose(
-    worldPosition(design, instanceId, visited),
-    worldQuaternion(design, instanceId, visited),
+    worldPosition(design, instanceId, new Set(visited)),
+    worldQuaternion(design, instanceId, new Set(visited)),
     new THREE.Vector3(1, 1, 1),
   );
   return matrix;

@@ -6,6 +6,10 @@ import { useDesign } from '../state/DesignContext';
 import { CodeableMark } from './CodeableMark';
 import { MountTargets } from './MountTargets';
 import { SafePartView } from './PartView';
+import {
+  ROBOT_RIDE_HEIGHT_M,
+  ROBOT_SPACE_TO_WORLD_QUATERNION,
+} from './robotSpaceAdapter';
 
 /** Parts shown in the scene: placed parts plus root chassis at origin. */
 export function isPartVisible(part: PlacedPart): boolean {
@@ -20,7 +24,11 @@ export function RobotView() {
   const { design, select, enterCodeFromBoard } = useDesign();
 
   return (
-    <group>
+    // Part/robot space is Z-up (PRD §7.1a); three.js/drei world is Y-up — see robotSpaceAdapter.
+    <group
+      position={[0, ROBOT_RIDE_HEIGHT_M, 0]}
+      quaternion={ROBOT_SPACE_TO_WORLD_QUATERNION}
+    >
       {visibleParts(design).map((p) => {
         const pos = worldPosition(design, p.instanceId);
         const quat = worldQuaternion(design, p.instanceId);
