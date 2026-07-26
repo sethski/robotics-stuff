@@ -18,7 +18,7 @@ function ModeBody() {
       <Canvas
         style={{ position: 'absolute', inset: 0, background: '#16181d' }}
         shadows
-        camera={{ position: [0.25, 0.2, 0.3], fov: 40 }}
+        camera={{ position: [0.28, 0.22, 0.34], fov: 40 }}
         gl={{ toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
       >
         <Studio tier="high">
