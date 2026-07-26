@@ -51,12 +51,13 @@ Never run two implementers that write the same path at once.
 Never merge a task branch locally into the integration branch. Landing is always:
 
 1. Push the task branch only: `git push -u origin HEAD`.
-2. Open a PR into the **integration branch** (e.g. `feat/part-system-foundation`), not into `master` unless the user asks.
+2. Open a PR into the **integration branch** (e.g. `feat/part-system-foundation`), not directly into `master`.
    Use `gh pr create` with a short summary and test plan.
 3. Controller reviews the PR (diff + checks). Fix via the task branch until the review is clean.
 4. Merge **through that PR** (`gh pr merge`), one PR at a time.
-5. Resolve any merge conflicts on the PR before merging. Do not start the next PR until this one is merged.
-6. Update `.superpowers/sdd/progress.md` with branch name, commit range, PR URL, and merge SHA.
+5. Promote to default branch: open/merge a PR from the **integration branch → `master`** so landed work is always on `master` too. Do not leave finished task merges only on the integration branch.
+6. Resolve any merge conflicts on the PR before merging. Do not start the next task PR until this task’s integration merge **and** the `master` promote are done.
+7. Update `.superpowers/sdd/progress.md` with branch name, commit range, task PR URL, master promote PR URL, and merge SHAs.
 
 Parallel **coding** is fine. Parallel **PRs landing** is not. Do not open-and-merge several task PRs in one batch.
 
