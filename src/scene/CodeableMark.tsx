@@ -9,7 +9,7 @@ interface CodeableMarkProps {
 
 function outlineSize(partId: string, params: Record<string, number> = {}) {
   const def = getPart(partId);
-  const merged = { ...def.defaultParams, ...params } as Record<string, number>;
+  const merged = { ...(def.defaultParams as Record<string, number>), ...params };
   if ('boardWidth' in merged && 'boardHeight' in merged) {
     return {
       width: merged.boardWidth,
