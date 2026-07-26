@@ -38,13 +38,21 @@ Author every commit as Troy-LL per `roboarena-engineering` (including GMT+8 stam
 
 ## Dependency DAG and parallel waves
 
-Schedule from the plan’s file dependencies, not from task number alone.
+Schedule from the plan’s **execution graph** (and file dependencies), not from task number alone. Prefer a mermaid DAG in the plan + `.superpowers/sdd/task-graph.md`.
 
-- **Serial spine:** shared types, cache, package scaffolding (one writer).
-- **Parallel wave:** independent **tasks** with disjoint files. Cut multiple branches from the same base at once; two worktrees OK.
-- **Join task:** registry / wiring / budget after parallel task branches are **done and pushed** (stack the join off parent tips; do not merge to `master` just to unblock unless the user asks).
+- **Serial spine:** shared types, cache, package scaffolding, join files (one writer).
+- **Parallel wave:** independent **tasks** with **disjoint file sets**. For each: cut a branch from the **same base**, put it in its **own worktree**, dispatch implementers in **one controller turn** (same-message Task calls run concurrently).
+- **Orchestrator = auditor:** review-package + task reviewer per branch; do not let implementers merge.
+- **Join:** after a parallel wave, orchestrator merges sibling branches into an integration branch (or stacks the next serial task on a merge commit), runs full `npm test`, then continues. Do not start a consumer task until the join exists.
+- **Never** two implementers on the same path or the same worktree.
 
-Never run two implementers that write the same path at once.
+Recipe:
+
+1. Write/update the DAG wave table (who can run together).
+2. `git worktree add .worktrees/task-N -b feat/task-N-<slug> <base>`.
+3. Dispatch N implementers in one message; each gets its brief + exclusive paths.
+4. Review each; fix Critical/Important; ledger each.
+5. Join merges → next wave.
 
 ## Push and land
 
