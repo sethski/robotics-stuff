@@ -18,6 +18,8 @@ document resolves that trade-off and three others that fell out of it.
 | 2 | How is the app laid out? | **Three full-screen modes** (Build / Code / Race), not a multi-pane workbench. |
 | 3 | How does a user get from a part to its code? | Clicking the **board** in Build enters Code mode. Codeable parts are visibly marked. |
 | 4 | How do non-coders write code? | A **four-layer ladder**; the first three work offline with no API cost, Groq is the top rung only. |
+| 5 | Who decides which pin a part connects to? | **Auto-assign by default, with a guided wiring panel one tap away.** Dragging wires in 3D is post-MVP. |
+| 6 | What does Race show when the robot fails? | **Live sensor overlays plus a scrubbable replay.** AI failure explanation arrives with the Groq layer. |
 
 ---
 
@@ -213,7 +215,61 @@ explanations. Offline, this layer is simply absent and everything else still wor
 
 ---
 
-## 8. Error handling
+## 8. Decision 5 — Pin assignment
+
+**The gap this closes:** the assistance ladder's Layer 1 promises a starter sketch with correct pin
+constants, and Pillar 4 promises an exported wiring diagram. Both need concrete pin numbers, but
+Build only placed parts on snap points — nothing decided that a motor lives on D5.
+
+**Default: auto-assign.** Placing a part immediately assigns valid pins from the board's available
+set, respecting constraints (motors need PWM-capable pins, analog sensors need analog pins). The
+result is shown as a read-only pin map. Zero friction, impossible to get wrong, and the starter
+sketch and export both have what they need from the moment a part is dropped.
+
+**One tap away: the guided wiring panel.** A flat 2D board diagram beside the part list. Tap a part,
+then tap a pin; only valid pins light up. Reassignment updates the pin map, the generated code
+constants, and the export together. This is where the electronics concept actually gets taught, and
+tap-tap works on a tablet where dragging does not.
+
+**Post-MVP: dragging wires in 3D.** Pulling a wire from a sensor pin to the board header in the
+viewport, with wires staying visible on the robot afterward.
+
+**Tension worth recording:** with auto-assign alone, the exported wiring diagram is instructions the
+user has never seen before — they follow a diagram rather than recognise their own work, which
+weakens Pillar 4. The wiring panel is the mitigation, and the 3D wiring option post-MVP is the full
+fix. Watch whether users open the panel at all; if nobody does, Pillar 4's promise needs rethinking
+rather than more UI.
+
+---
+
+## 9. Decision 6 — Race feedback and replay
+
+**Both live overlays and scrubbable replay ship in MVP.** They are not alternatives: the overlays
+are a live view of exactly the data the replay records, so there is one data source with two
+consumers.
+
+**Live overlays.** IR sensor cones, the ultrasonic ray and its distance, and current pin values drawn
+into the scene as it runs. This is what makes invisible sensor behaviour legible — a learner can
+watch both line sensors go white at the moment the robot drifts off.
+
+**Scrubbable replay.** Every tick of sensor and pin state is recorded to a ring buffer. Rewind to the
+moment of failure, step tick by tick, and see the trail of past positions. Lanes under the timeline
+show each sensor and motor channel over time, so "the sensor changed and the motor didn't" is
+visible at a glance.
+
+**Why this is affordable:** determinism is already required for leaderboard scoring (§9 testing), so
+a run is reproducible from its inputs. Recording is roughly a dozen `Float32` values per tick — two
+line sensors, ultrasonic distance, pin states, and robot x/y/heading — about 48 bytes per tick, so a
+60-second run at 60Hz is ~170KB of memory. A ring buffer, never the network or disk.
+
+**With the Groq layer:** an "explain this" action at any point in the replay sends the recorded state
+plus the user's source and gets back a plain-English cause naming the responsible line. Same rate
+cap and login gate as §7.1, and it degrades to absent when offline. Because the model can be
+confidently wrong, the explanation is presented next to the raw timeline data, never instead of it.
+
+---
+
+## 10. Error handling
 
 **Principle: user mistakes are content, not failures.** This is a teaching tool; the interesting
 errors deserve real treatment.
@@ -233,7 +289,7 @@ errors deserve real treatment.
 
 ---
 
-## 9. Testing
+## 11. Testing
 
 - **Part definitions** are pure functions: call `build()` and assert triangle count, bounding box,
   snap point positions, and mass. No rendering involved.
@@ -247,7 +303,7 @@ errors deserve real treatment.
 
 ---
 
-## 10. Changes required to PRD.md
+## 12. Changes required to PRD.md
 
 1. §9.1 — remove `three-bvh-csg`; add drei `Environment`/`Lightformer`, `ContactShadows`,
    `three-mesh-bvh`. Note `manifold-3d` as the boolean option *if ever needed*.
@@ -261,10 +317,21 @@ errors deserve real treatment.
 
 ---
 
-## 11. Out of scope
+## 13. Out of scope
 
 - Postprocessing (N8AO, bloom) — post-MVP, device-gated.
 - Workbench layout — post-MVP.
 - Codeable peripherals — MVP is board-only.
+- Dragging wires in 3D — post-MVP (§8).
+- AI failure explanation in Race — arrives with the Groq layer, not before (§9).
 - Bring-your-own-key for Groq — revisit if educators ask for classroom-scale usage.
 - Mesh booleans of any kind.
+
+---
+
+## 14. Still open
+
+- **Touch interaction.** The target device is a budget Android tablet, but drag-and-drop 3D part
+  placement with snapping is hard without a mouse. The wiring panel (§8) is already tap-based for
+  this reason; Build itself has not been designed for touch. Needs its own pass before
+  implementation.
