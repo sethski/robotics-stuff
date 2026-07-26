@@ -3,6 +3,20 @@ import { PART_REGISTRY, getPart } from '../src/parts/registry';
 import { buildPart } from '../src/geometry/buildPart';
 
 describe('part registry', () => {
+  it('contains all PRD §6 parts', () => {
+    expect(Object.keys(PART_REGISTRY).sort()).toEqual(
+      [
+        'battery-pack',
+        'chassis-2wd',
+        'dc-motor',
+        'hc-sr04',
+        'ir-line-pair',
+        'uno-r3',
+        'wheel-65',
+      ].sort(),
+    );
+  });
+
   it('keys every part by its own id', () => {
     for (const [id, def] of Object.entries(PART_REGISTRY)) {
       expect(def.id).toBe(id);
