@@ -36,6 +36,41 @@
 
 **Suggested follow-on plans after this one:** (1) Code mode + emulator, (2) Race mode + replay.
 
+## Execution graph (parallel waves)
+
+Orchestrator runs multi-subagent SDD: parallel implementers only on disjoint files / separate worktrees; orchestrator audits and joins.
+
+```mermaid
+flowchart TD
+  T1[1 types] --> T3[3 Uno]
+  T3 --> T4[4 catalog]
+  T4 --> T2[2 pins]
+  T1 --> T2
+  T2 --> T5[5 placement]
+  T4 --> T5
+  T5 --> T6[6 transforms]
+  T5 --> T7[7 shell]
+  T2 --> T7
+  T6 --> J[join 6+7]
+  T7 --> J
+  J --> T8[8 RobotView]
+  J --> T9[9 HUD]
+  T8 --> T10[10 App]
+  T9 --> T10
+  T10 --> T11[11 seed]
+```
+
+| Wave | Tasks | Mode |
+|---|---|---|
+| A–C | 1 → 3 → 4 → 2 | serial (done / doing) |
+| D | 5 | serial |
+| E | 6 \|\| 7 | **parallel** (disjoint: `design/transforms|balance` vs `persist|state|shell`) |
+| F | merge 6+7 | orchestrator join |
+| G | 8 \|\| 9 | **parallel** (disjoint: `scene/*` vs `build/*`) |
+| H–I | 10 → 11 | serial |
+
+Live status: `.superpowers/sdd/task-graph.md` (gitignored).
+
 ## File Structure
 
 | File | Responsibility |
