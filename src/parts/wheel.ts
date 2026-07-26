@@ -23,6 +23,7 @@ export const wheel: PartDef<WheelParams> = {
       params.width,
       ctx.segments,
     );
+    tyre.rotateX(Math.PI / 2);
     const pieces: PartPiece[] = [
       { name: 'tyre', geometry: tyre, material: 'rubber', movable: true },
     ];
@@ -35,6 +36,7 @@ export const wheel: PartDef<WheelParams> = {
         params.width * 1.05,
         ctx.segments,
       );
+      hub.rotateX(Math.PI / 2);
       pieces.push({ name: 'hub', geometry: hub, material: 'plastic', movable: true });
     }
 

@@ -8,6 +8,20 @@ describe('wheel', () => {
     expect(built.pieces.some((p) => p.movable)).toBe(true);
   });
 
+  it('orients the tyre spin axis along part-local +Z', () => {
+    const built = buildPart(wheel);
+    const tyre = built.pieces.find((p) => p.name === 'tyre');
+    expect(tyre).toBeDefined();
+    tyre!.geometry.computeBoundingBox();
+    const box = tyre!.geometry.boundingBox!;
+    const extentX = box.max.x - box.min.x;
+    const extentY = box.max.y - box.min.y;
+    const extentZ = box.max.z - box.min.z;
+    expect(extentZ).toBeLessThan(extentX);
+    expect(extentX).toBeCloseTo(extentY, 3);
+    expect(extentZ).toBeCloseTo(wheel.defaultParams.width, 4);
+  });
+
   it('has a shaft snap that matches the chassis wheel mount type', () => {
     expect(wheel.snaps.map((s) => s.type)).toContain('wheel-shaft');
   });

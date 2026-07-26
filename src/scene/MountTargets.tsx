@@ -1,7 +1,7 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { canPlaceGrid, listSnapTargets } from '../design/placement';
-import { worldMatrix, worldPosition, worldQuaternion } from '../design/transforms';
+import { worldPosition, worldQuaternion } from '../design/transforms';
 import type { RobotDesign } from '../design/types';
 import type { MountSurface } from '../parts/types';
 import { getPart } from '../parts/registry';
@@ -25,14 +25,11 @@ export function hostSnapWorldPosition(
 }
 
 export function gridCellFromWorldPoint(
-  hitWorld: THREE.Vector3,
-  design: RobotDesign,
-  hostInstanceId: string,
+  hitLocal: THREE.Vector3,
   surface: MountSurface,
 ): { col: number; row: number } {
-  const local = hitWorld.clone().applyMatrix4(worldMatrix(design, hostInstanceId).invert());
-  const col = Math.round((local.x - surface.origin[0]) / surface.pitch);
-  const row = Math.round((local.y - surface.origin[1]) / surface.pitch);
+  const col = Math.round((hitLocal.x - surface.origin[0]) / surface.pitch);
+  const row = Math.round((hitLocal.y - surface.origin[1]) / surface.pitch);
   return { col, row };
 }
 
@@ -66,7 +63,10 @@ function DeckPlane({
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    const { col, row } = gridCellFromWorldPoint(e.point, design, hostInstanceId, surface);
+    const hostGroup = e.eventObject.parent;
+    if (!hostGroup) return;
+    const hitLocal = hostGroup.worldToLocal(e.point.clone());
+    const { col, row } = gridCellFromWorldPoint(hitLocal, surface);
     if (canPlaceGrid(design, instanceId, hostInstanceId, surfaceId, col, row, 0)) {
       onPlace(hostInstanceId, surfaceId, col, row);
     }

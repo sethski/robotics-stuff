@@ -1,26 +1,30 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import { getPart } from '../parts/registry';
 import { worldPosition, worldQuaternion } from '../design/transforms';
+import { isSceneVisible } from '../design/balance';
 import type { PlacedPart, RobotDesign } from '../design/types';
 import { useDesign } from '../state/DesignContext';
 import { CodeableMark } from './CodeableMark';
 import { MountTargets } from './MountTargets';
 import { SafePartView } from './PartView';
-
-/** Parts shown in the scene: placed parts plus root chassis at origin. */
-export function isPartVisible(part: PlacedPart): boolean {
-  return part.placement !== null || part.partId === 'chassis-2wd';
-}
+import {
+  ROBOT_RIDE_HEIGHT_M,
+  ROBOT_SPACE_TO_WORLD_QUATERNION,
+} from './robotSpaceAdapter';
 
 export function visibleParts(design: RobotDesign): PlacedPart[] {
-  return design.parts.filter(isPartVisible);
+  return design.parts.filter(isSceneVisible);
 }
 
 export function RobotView() {
   const { design, select, enterCodeFromBoard } = useDesign();
 
   return (
-    <group>
+    // Part/robot space is Z-up (PRD §7.1a); three.js/drei world is Y-up — see robotSpaceAdapter.
+    <group
+      position={[0, ROBOT_RIDE_HEIGHT_M, 0]}
+      quaternion={ROBOT_SPACE_TO_WORLD_QUATERNION}
+    >
       {visibleParts(design).map((p) => {
         const pos = worldPosition(design, p.instanceId);
         const quat = worldQuaternion(design, p.instanceId);
