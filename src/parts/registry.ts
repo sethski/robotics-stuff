@@ -2,11 +2,13 @@ import type { PartDef } from './types';
 import { chassis } from './chassis';
 import { wheel } from './wheel';
 import { ultrasonic } from './ultrasonic';
+import { uno } from './uno';
 
 export const PART_REGISTRY = {
   [chassis.id]: chassis,
   [wheel.id]: wheel,
   [ultrasonic.id]: ultrasonic,
+  [uno.id]: uno,
 } as unknown as Record<string, PartDef<never>>;
 
 export function getPart(id: string): PartDef<never> {
