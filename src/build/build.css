@@ -1,0 +1,195 @@
+.build-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    'palette . wiring'
+    'palette bottom wiring';
+  z-index: 10;
+}
+
+.build-hud > * {
+  pointer-events: auto;
+}
+
+.build-palette {
+  grid-area: palette;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: rgba(28, 31, 38, 0.92);
+  border-right: 1px solid #2a2d34;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.build-palette button {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #3d4554;
+  border-radius: 0.25rem;
+  background: #252830;
+  color: #e8eaed;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.build-palette button:hover {
+  background: #2d3340;
+}
+
+.build-bottom {
+  grid-area: bottom;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  pointer-events: none;
+}
+
+.build-bottom > * {
+  pointer-events: auto;
+}
+
+.build-balance {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(28, 31, 38, 0.92);
+  border: 1px solid #2a2d34;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+}
+
+.build-balance-meter {
+  width: 80px;
+  height: 6px;
+  background: #2a2d34;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.build-balance-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+  transition: width 0.2s;
+}
+
+.build-nudge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem;
+  background: rgba(28, 31, 38, 0.92);
+  border: 1px solid #2a2d34;
+  border-radius: 0.375rem;
+}
+
+.build-nudge-row {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.build-nudge button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #3d4554;
+  border-radius: 0.25rem;
+  background: #252830;
+  color: #e8eaed;
+  font: inherit;
+  cursor: pointer;
+}
+
+.build-nudge button:hover {
+  background: #2d3340;
+}
+
+.build-nudge button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.build-wiring {
+  grid-area: wiring;
+  width: 200px;
+  padding: 0.5rem;
+  background: rgba(28, 31, 38, 0.92);
+  border-left: 1px solid #2a2d34;
+  overflow-y: auto;
+}
+
+.build-wiring h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.build-wiring-section {
+  margin-bottom: 0.75rem;
+}
+
+.build-wiring-section h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #b8bcc4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.build-pin-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.build-pin {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #3d4554;
+  border-radius: 0.2rem;
+  background: #252830;
+  color: #b8bcc4;
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.build-pin:hover {
+  background: #2d3340;
+}
+
+.build-pin--assigned {
+  color: #e8eaed;
+  border-color: #5a9fd4;
+}
+
+.build-pin--selected {
+  background: #3d5a80;
+  border-color: #5a9fd4;
+  color: #fff;
+}
+
+.build-pin--valid {
+  border-color: #4caf50;
+  color: #a5d6a7;
+}
+
+.build-pin--valid:hover {
+  background: #2e4a32;
+}
+
+.build-pin--used {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
