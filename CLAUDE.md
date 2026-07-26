@@ -13,13 +13,13 @@ Skill: `.cursor/skills/roboarena-sdd/SKILL.md`
 
 Summary:
 
-1. Integration branch for merges only (`feat/part-system-foundation` for the foundation plan).
-2. One branch per task / component slice (`feat/task-N-slug`).
-3. Granular commits on that branch (test → implement → polish).
-4. Push the task branch, open a **PR into the integration branch**, review, merge via the PR.
-5. One PR at a time. Parallel coding on disjoint files is fine; parallel merges are not.
+1. One branch per task / component slice (`feat/task-N-slug`).
+2. Granular commits on that branch (test → implement → polish), GMT+8 stamps.
+3. **Phase A:** push every task branch (draft PRs OK). **Do not merge yet.**
+4. **Phase B:** only after the whole plan wave is pushed — merge into `master` **one branch at a time**, dependency order.
+5. Parallel coding on disjoint files/worktrees is fine; parallel merges are not.
 
-Never local-merge task branches into integration. Never land product work on `master` without an explicit ask.
+Never commit product work directly on `master`. Never merge mid-wave just because one task finished.
 
 ## Engineering
 
