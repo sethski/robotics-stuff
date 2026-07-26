@@ -1,6 +1,7 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import { getPart } from '../parts/registry';
 import { worldPosition, worldQuaternion } from '../design/transforms';
+import { isSceneVisible } from '../design/balance';
 import type { PlacedPart, RobotDesign } from '../design/types';
 import { useDesign } from '../state/DesignContext';
 import { CodeableMark } from './CodeableMark';
@@ -11,13 +12,8 @@ import {
   ROBOT_SPACE_TO_WORLD_QUATERNION,
 } from './robotSpaceAdapter';
 
-/** Parts shown in the scene: placed parts plus root chassis at origin. */
-export function isPartVisible(part: PlacedPart): boolean {
-  return part.placement !== null || part.partId === 'chassis-2wd';
-}
-
 export function visibleParts(design: RobotDesign): PlacedPart[] {
-  return design.parts.filter(isPartVisible);
+  return design.parts.filter(isSceneVisible);
 }
 
 export function RobotView() {

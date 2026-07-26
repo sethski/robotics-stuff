@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest';
 import { createEmptyDesign, newInstanceId } from '../src/design/createDesign';
 import { placeOnGrid } from '../src/design/placement';
 import { getPart } from '../src/parts/registry';
+import { isSceneVisible } from '../src/design/balance';
 import {
   gridCellFromWorldPoint,
   hostSnapWorldPosition,
 } from '../src/scene/MountTargets';
-import { isPartVisible, visibleParts } from '../src/scene/RobotView';
+import { visibleParts } from '../src/scene/RobotView';
 
 describe('RobotView helpers', () => {
   it('shows chassis at origin even when unplaced', () => {
@@ -33,8 +34,8 @@ describe('RobotView helpers', () => {
         },
       ],
     };
-    expect(isPartVisible(design.parts[0])).toBe(true);
-    expect(isPartVisible(design.parts[1])).toBe(false);
+    expect(isSceneVisible(design.parts[0])).toBe(true);
+    expect(isSceneVisible(design.parts[1])).toBe(false);
     expect(visibleParts(design)).toHaveLength(1);
   });
 
