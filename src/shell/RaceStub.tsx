@@ -1,5 +1,6 @@
-import { useDesign } from '../state/DesignContext';
+import { isSceneVisible } from '../design/balance';
 import type { RobotDesign } from '../design/types';
+import { useDesign } from '../state/DesignContext';
 
 export interface RaceReadiness {
   hasChassis: boolean;
@@ -9,10 +10,10 @@ export interface RaceReadiness {
 
 export function assessRaceReadiness(design: RobotDesign): RaceReadiness {
   const hasChassis = design.parts.some(
-    (p) => p.partId.startsWith('chassis') && p.placement !== null,
+    (p) => p.partId.startsWith('chassis') && isSceneVisible(p),
   );
   const hasWheels = design.parts.some(
-    (p) => p.partId.startsWith('wheel') && p.placement !== null,
+    (p) => p.partId.startsWith('wheel') && isSceneVisible(p),
   );
   return { hasChassis, hasWheels, ready: hasChassis && hasWheels };
 }

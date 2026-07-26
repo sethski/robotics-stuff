@@ -3,7 +3,7 @@ import type { PlacedPart, RobotDesign } from './types';
 import { worldPosition } from './transforms';
 
 /** Parts visible in the scene: root chassis or anything with a placement. */
-function isSceneVisible(part: PlacedPart): boolean {
+export function isSceneVisible(part: PlacedPart): boolean {
   return part.placement !== null || part.partId === 'chassis-2wd';
 }
 
