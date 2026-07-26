@@ -44,6 +44,47 @@
   background: #2d3340;
 }
 
+.build-palette-tray {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2a2d34;
+}
+
+.build-palette-tray-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #b8bcc4;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.build-palette-tray-item {
+  opacity: 0.85;
+}
+
+.build-palette-footer {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2a2d34;
+}
+
+.build-palette-footer button {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #5a9fd4;
+  border-radius: 0.25rem;
+  background: #2d3a4a;
+  color: #e8eaed;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.build-palette-footer button:hover {
+  background: #3d4f66;
+}
+
 .build-bottom {
   grid-area: bottom;
   display: flex;

@@ -5,7 +5,7 @@ import type { PlacedPart, RobotDesign } from '../design/types';
 import { useDesign } from '../state/DesignContext';
 import { CodeableMark } from './CodeableMark';
 import { MountTargets } from './MountTargets';
-import { PartView } from './PartView';
+import { SafePartView } from './PartView';
 
 /** Parts shown in the scene: placed parts plus root chassis at origin. */
 export function isPartVisible(part: PlacedPart): boolean {
@@ -39,7 +39,7 @@ export function RobotView() {
             quaternion={quat}
             onClick={onClick}
           >
-            <PartView partId={p.partId} params={p.params} />
+            <SafePartView partId={p.partId} params={p.params} />
             {def.codeable && (
               <CodeableMark active partId={p.partId} params={p.params} />
             )}

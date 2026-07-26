@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createEmptyDesign, newInstanceId } from '../design/createDesign';
+import { createEmptyDesign, createStarterDesign, newInstanceId } from '../design/createDesign';
 import {
   nudgeGrid,
   placeOnGrid,
@@ -43,6 +43,7 @@ export interface DesignApi {
   save: () => void;
   load: () => void;
   enterCodeFromBoard: (instanceId: string) => void;
+  loadStarter: () => void;
 }
 
 const DesignContext = createContext<DesignApi | null>(null);
@@ -64,19 +65,24 @@ export function DesignProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addFromPalette = useCallback((partId: string) => {
-    const instanceId = newInstanceId(partId);
-    const part: PlacedPart = {
-      instanceId,
-      partId,
-      params: {},
-      placement: null,
-      pinMap: {},
-    };
-    setDesign((d) => ({
-      ...d,
-      parts: [...d.parts, part],
-      selectedInstanceId: instanceId,
-    }));
+    setDesign((d) => {
+      if (partId === 'chassis-2wd' && d.parts.some((p) => p.partId === 'chassis-2wd')) {
+        return d;
+      }
+      const instanceId = newInstanceId(partId);
+      const part: PlacedPart = {
+        instanceId,
+        partId,
+        params: {},
+        placement: null,
+        pinMap: {},
+      };
+      return {
+        ...d,
+        parts: [...d.parts, part],
+        selectedInstanceId: instanceId,
+      };
+    });
   }, []);
 
   const placeSnap = useCallback(
@@ -197,6 +203,10 @@ export function DesignProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const loadStarter = useCallback(() => {
+    setDesign(createStarterDesign());
+  }, []);
+
   const value = useMemo<DesignApi>(
     () => ({
       design,
@@ -213,6 +223,7 @@ export function DesignProvider({ children }: { children: ReactNode }) {
       save,
       load,
       enterCodeFromBoard,
+      loadStarter,
     }),
     [
       design,
@@ -229,6 +240,7 @@ export function DesignProvider({ children }: { children: ReactNode }) {
       save,
       load,
       enterCodeFromBoard,
+      loadStarter,
     ],
   );
 
