@@ -6,6 +6,18 @@ Commit as GitHub username **Troy-LL** (`Troy-LL <Troy-LL@users.noreply.github.co
 This machine has no global git identity set; pass it per-command with
 `git -c user.name=... -c user.email=... commit` rather than writing to git config.
 
+Never add a `Co-Authored-By` line.
+
+### Branches, commits, merges
+
+- One **branch per plan task / component slice** (`feat/task-N-slug`). Do not commit product work on `master` or directly on the integration branch.
+- **Granular commits** inside each branch (test → implement → polish). Not one commit per task.
+- **Parallel coding** only on disjoint files (dependency DAG).
+- **Landing:** push the task branch, open a **PR into the integration branch**, review it, then **merge through that PR**. Never local-merge task branches. One PR at a time.
+- Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`
+- Always-on Cursor rule: `.cursor/rules/roboarena-sdd-workflow.mdc`
+- Project Claude override: `CLAUDE.md` (wins over global Claude instructions for this repo)
+
 ## Standing engineering rules
 
 **Search open source first.** For every capability, look for an existing library before writing it

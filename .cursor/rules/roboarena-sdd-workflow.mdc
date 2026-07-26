@@ -1,0 +1,44 @@
+---
+description: RoboArena SDD workflow — task branches, granular commits, sequential PRs
+alwaysApply: true
+---
+
+# RoboArena delivery workflow
+
+## Branches
+
+- Never commit product work on `master`.
+- Keep a long-lived **integration branch** (e.g. `feat/part-system-foundation`).
+- Every plan task / component slice gets its **own branch** off the current integration tip:
+  - `feat/task-<N>-<slug>`
+  - `feat/task-<N>a-<slug>` for a parallel slice
+- Implementers commit only on their task branch, never on the integration branch.
+
+## Granular commits
+
+One logical change per commit. Typical task shape:
+
+1. failing test (RED)
+2. minimal implementation (GREEN)
+3. polish only if needed
+
+Do not squash a whole task into one commit unless the user asks.
+
+Author **and** committer must be `Troy-LL <Troy-LL@users.noreply.github.com>` (GitHub rejects private committer emails).
+
+## Parallel coding, sequential landing
+
+- Parallel **coding** only on disjoint file sets (dependency DAG).
+- Parallel **landing** is forbidden.
+- After review-clean work on a task branch:
+
+  1. `git push -u origin HEAD`
+  2. `gh pr create` into the **integration branch** (not `master` unless asked)
+  3. Controller reviews the PR
+  4. `gh pr merge` through that PR
+  5. Only then start the next merge
+
+## Details
+
+Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`  
+Engineering constraints: `.cursor/skills/roboarena-engineering/SKILL.md`
