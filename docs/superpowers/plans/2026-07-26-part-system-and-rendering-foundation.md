@@ -16,7 +16,7 @@
 - **Search open source before writing from scratch.** Record the search and verdict in the spec's §2 table before adding hand-written code for any general capability.
 - **Shared materials only.** Parts return `MaterialKey` strings, never `THREE.Material` instances.
 - **Low fixed segment counts.** Curve segments 12–16 for visible curves; never above 16 in MVP parts.
-- **Performance budget (enforced by test in Task 7):** reference robot under 15,000 triangles and under 40 draw calls.
+- **Performance budget (enforced by test in Task 8):** reference robot under 15,000 triangles and under 40 draw calls.
 - **Licences:** MIT or Apache 2.0 only.
 - Units are **metres** throughout (a 45mm board is `0.045`).
 
@@ -36,6 +36,8 @@
 | `src/scene/quality.ts` | Quality tier enum and the framerate downgrade decision. |
 | `src/scene/Studio.tsx` | R3F lighting rig: `Environment`/`Lightformer`, `ContactShadows`, tone mapping. |
 | `src/scene/PartView.tsx` | Renders a `BuiltPart` using the shared palette. |
+| `src/scene/PartLOD.tsx` | Distance-based LOD wrapper around `PartView`; bypasses LOD when focused. |
+| `src/scene/focus.ts` | Maps focused part id → `DetailLevel` for user-initiated quality override. |
 | `tests/*` | One test file per source file above. |
 
 ---
@@ -170,6 +172,18 @@ export interface PartPiece {
   movable?: boolean;
 }
 
+/**
+ * How much geometry a build should emit. Because parts are parametric,
+ * a detail level is just another build input — there is no second asset.
+ */
+export type DetailLevel = 'high' | 'low';
+
+export interface BuildContext {
+  detail: DetailLevel;
+  /** Radial segments for curves. 16 at high detail, 8 at low. */
+  segments: number;
+}
+
 export interface PartDef<P extends object = object> {
   id: string;
   label: string;
@@ -181,13 +195,14 @@ export interface PartDef<P extends object = object> {
   snaps: SnapPoint[];
   pins: PinDef[];
   surfaces?: MountSurface[];
-  build(params: P): PartPiece[];
+  build(params: P, ctx: BuildContext): PartPiece[];
 }
 
 export interface BuiltPart {
   pieces: PartPiece[];
   triangleCount: number;
   drawCalls: number;
+  detail: DetailLevel;
   cacheKey: string;
 }
 ```
@@ -289,7 +304,7 @@ git commit -m "feat: add PartDef contract and shared Tier 2 material palette"
 
 **Interfaces:**
 - Consumes: `PartDef`, `PartPiece`, `BuiltPart` from `src/parts/types.ts`.
-- Produces: `buildPart<P>(def: PartDef<P>, params?: Partial<P>): BuiltPart`, `clearPartCache(): void`, and `partCacheSize(): number`. Every later task calls `buildPart`; nothing else calls `def.build()`.
+- Produces: `buildPart<P>(def: PartDef<P>, params?: Partial<P>, detail?: DetailLevel): BuiltPart`, `clearPartCache(): void`, and `partCacheSize(): number`. Every later task calls `buildPart`; nothing else calls `def.build()`. `detail` defaults to `'high'`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -313,13 +328,15 @@ function makeDef(buildSpy = vi.fn()): PartDef<TestParams> {
     footprint: { cols: 2, rows: 2 },
     snaps: [],
     pins: [],
-    build(params) {
-      buildSpy(params);
-      return [
-        { name: 'a', geometry: new THREE.BoxGeometry(params.size, 1, 1), material: 'dark' },
-        { name: 'b', geometry: new THREE.BoxGeometry(params.size, 1, 1), material: 'dark' },
-        { name: 'wheel', geometry: new THREE.BoxGeometry(1, 1, 1), material: 'rubber', movable: true },
+    build(params, ctx) {
+      buildSpy(params, ctx);
+      const pieces = [
+        { name: 'a', geometry: new THREE.BoxGeometry(params.size, 1, 1), material: 'dark' as const },
+        { name: 'b', geometry: new THREE.BoxGeometry(params.size, 1, 1), material: 'dark' as const },
+        { name: 'wheel', geometry: new THREE.BoxGeometry(1, 1, 1), material: 'rubber' as const, movable: true },
       ];
+      // Cosmetic pieces are dropped at low detail.
+      return ctx.detail === 'low' ? pieces.slice(1) : pieces;
     },
   };
 }
@@ -362,7 +379,32 @@ describe('buildPart', () => {
   it('applies partial params over defaults', () => {
     const spy = vi.fn();
     buildPart(makeDef(spy), { size: 5 });
-    expect(spy).toHaveBeenCalledWith({ size: 5 });
+    expect(spy).toHaveBeenCalledWith({ size: 5 }, { detail: 'high', segments: 16 });
+  });
+
+  it('builds high detail by default and passes 16 segments', () => {
+    const spy = vi.fn();
+    buildPart(makeDef(spy));
+    expect(spy).toHaveBeenCalledWith(expect.anything(), { detail: 'high', segments: 16 });
+  });
+
+  it('caches high and low detail separately', () => {
+    const spy = vi.fn();
+    const def = makeDef(spy);
+    buildPart(def, undefined, 'high');
+    buildPart(def, undefined, 'low');
+    buildPart(def, undefined, 'low');
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(partCacheSize()).toBe(2);
+  });
+
+  it('produces cheaper geometry at low detail', () => {
+    const def = makeDef();
+    const high = buildPart(def, undefined, 'high');
+    const low = buildPart(def, undefined, 'low');
+    expect(low.triangleCount).toBeLessThan(high.triangleCount);
+    expect(low.drawCalls).toBeLessThanOrEqual(high.drawCalls);
+    expect(low.detail).toBe('low');
   });
 });
 ```
@@ -377,7 +419,7 @@ Expected: FAIL — cannot resolve `../src/geometry/buildPart`.
 ```ts
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { BuiltPart, MaterialKey, PartDef, PartPiece } from '../parts/types';
+import type { BuiltPart, DetailLevel, MaterialKey, PartDef, PartPiece } from '../parts/types';
 
 const cache = new Map<string, BuiltPart>();
 
@@ -415,14 +457,20 @@ function mergeStatic(pieces: PartPiece[]): PartPiece[] {
   return output;
 }
 
-export function buildPart<P extends object>(def: PartDef<P>, params?: Partial<P>): BuiltPart {
+const SEGMENTS_FOR: Record<DetailLevel, number> = { high: 16, low: 8 };
+
+export function buildPart<P extends object>(
+  def: PartDef<P>,
+  params?: Partial<P>,
+  detail: DetailLevel = 'high',
+): BuiltPart {
   const resolved = { ...def.defaultParams, ...params } as P;
-  const cacheKey = `${def.id}:${JSON.stringify(resolved)}`;
+  const cacheKey = `${def.id}:${detail}:${JSON.stringify(resolved)}`;
 
   const hit = cache.get(cacheKey);
   if (hit) return hit;
 
-  const raw = def.build(resolved);
+  const raw = def.build(resolved, { detail, segments: SEGMENTS_FOR[detail] });
   const total = raw.reduce((sum, piece) => sum + triangleCount(piece.geometry), 0);
   const pieces = mergeStatic(raw);
 
@@ -430,6 +478,7 @@ export function buildPart<P extends object>(def: PartDef<P>, params?: Partial<P>
     pieces,
     triangleCount: total,
     drawCalls: pieces.length,
+    detail,
     cacheKey,
   };
   cache.set(cacheKey, built);
@@ -448,7 +497,7 @@ export function partCacheSize(): number {
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npm test -- tests/buildPart.test.ts`
-Expected: PASS, 5 tests.
+Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -467,7 +516,7 @@ git commit -m "feat: add cached part geometry builder with static merging"
 
 **Interfaces:**
 - Consumes: `buildPart` from Task 3; `PartDef`, `MountSurface` from Task 2.
-- Produces: `chassis: PartDef<ChassisParams>` and `interface ChassisParams { length: number; width: number; thickness: number; pitch: number }`. Task 7 imports `chassis`.
+- Produces: `chassis: PartDef<ChassisParams>` and `interface ChassisParams { length: number; width: number; thickness: number; pitch: number }`. Task 8 imports `chassis`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -597,14 +646,14 @@ export const chassis: PartDef<ChassisParams> = {
   ],
   pins: [],
   surfaces: [mountGrid(DEFAULTS)],
-  build(params): PartPiece[] {
+  build(params, ctx): PartPiece[] {
     const geometry = new THREE.ExtrudeGeometry(plateShape(params.length, params.width), {
       depth: params.thickness,
-      bevelEnabled: true,
+      bevelEnabled: ctx.detail === 'high',
       bevelThickness: 0.0004,
       bevelSize: 0.0004,
       bevelSegments: 1,
-      curveSegments: 4,
+      curveSegments: ctx.detail === 'high' ? 4 : 1,
     });
     return [{ name: 'plate', geometry, material: 'plastic' }];
   },
@@ -633,7 +682,7 @@ git commit -m "feat: add procedural chassis part with perfboard-pitch mount grid
 
 **Interfaces:**
 - Consumes: `buildPart` (Task 3), types (Task 2).
-- Produces: `wheel: PartDef<WheelParams>`, `ultrasonic: PartDef<UltrasonicParams>`, and `PART_REGISTRY: Record<string, PartDef<never>>` plus `getPart(id: string): PartDef<never>` from `src/parts/registry.ts`. Task 7 imports `wheel`, `ultrasonic`, and `PART_REGISTRY`.
+- Produces: `wheel: PartDef<WheelParams>`, `ultrasonic: PartDef<UltrasonicParams>`, and `PART_REGISTRY: Record<string, PartDef<never>>` plus `getPart(id: string): PartDef<never>` from `src/parts/registry.ts`. Task 8 imports `wheel`, `ultrasonic`, and `PART_REGISTRY`.
 
 - [ ] **Step 1: Write the failing wheel test**
 
@@ -662,6 +711,12 @@ describe('wheel', () => {
     expect(() => buildPart(wheel, { radius: 0.02 })).not.toThrow();
     expect(() => buildPart(wheel, { radius: 0.06 })).not.toThrow();
   });
+
+  it('drops the cosmetic hub at low detail', () => {
+    const high = buildPart(wheel, undefined, 'high');
+    const low = buildPart(wheel, undefined, 'low');
+    expect(low.triangleCount).toBeLessThan(high.triangleCount);
+  });
 });
 ```
 
@@ -682,8 +737,6 @@ export interface WheelParams {
   hubRadius: number;
 }
 
-const SEGMENTS = 16;
-
 export const wheel: PartDef<WheelParams> = {
   id: 'wheel-65',
   label: '65mm Wheel',
@@ -693,18 +746,29 @@ export const wheel: PartDef<WheelParams> = {
   footprint: { cols: 0, rows: 0 },
   snaps: [{ id: 'shaft', type: 'wheel-shaft', position: [0, 0, 0], normal: [0, 0, 1] }],
   pins: [],
-  build(params): PartPiece[] {
-    const tyre = new THREE.CylinderGeometry(params.radius, params.radius, params.width, SEGMENTS);
-    const hub = new THREE.CylinderGeometry(
-      params.hubRadius,
-      params.hubRadius,
-      params.width * 1.05,
-      SEGMENTS,
+  build(params, ctx): PartPiece[] {
+    const tyre = new THREE.CylinderGeometry(
+      params.radius,
+      params.radius,
+      params.width,
+      ctx.segments,
     );
-    return [
+    const pieces: PartPiece[] = [
       { name: 'tyre', geometry: tyre, material: 'rubber', movable: true },
-      { name: 'hub', geometry: hub, material: 'plastic', movable: true },
     ];
+
+    // The hub is cosmetic — at low detail it is inside the tyre silhouette anyway.
+    if (ctx.detail === 'high') {
+      const hub = new THREE.CylinderGeometry(
+        params.hubRadius,
+        params.hubRadius,
+        params.width * 1.05,
+        ctx.segments,
+      );
+      pieces.push({ name: 'hub', geometry: hub, material: 'plastic', movable: true });
+    }
+
+    return pieces;
   },
 };
 ```
@@ -712,7 +776,7 @@ export const wheel: PartDef<WheelParams> = {
 - [ ] **Step 4: Run it to verify it passes**
 
 Run: `npm test -- tests/wheel.test.ts`
-Expected: PASS, 4 tests.
+Expected: PASS, 5 tests.
 
 - [ ] **Step 5: Write the failing ultrasonic test**
 
@@ -745,6 +809,12 @@ describe('ultrasonic sensor', () => {
     expect(() => buildPart(ultrasonic, { boardWidth: 0.030 })).not.toThrow();
     expect(() => buildPart(ultrasonic, { boardWidth: 0.060 })).not.toThrow();
   });
+
+  it('is substantially cheaper at low detail', () => {
+    const high = buildPart(ultrasonic, undefined, 'high');
+    const low = buildPart(ultrasonic, undefined, 'low');
+    expect(low.triangleCount).toBeLessThan(high.triangleCount * 0.6);
+  });
 });
 ```
 
@@ -768,8 +838,6 @@ export interface UltrasonicParams {
   transducerRadius: number;
   holeRadius: number;
 }
-
-const SEGMENTS = 16;
 
 function boardShape(params: UltrasonicParams): THREE.Shape {
   const halfW = params.boardWidth / 2;
@@ -809,11 +877,11 @@ export const ultrasonic: PartDef<UltrasonicParams> = {
     { id: 'echo', kind: 'digital' },
     { id: 'gnd', kind: 'ground' },
   ],
-  build(params): PartPiece[] {
+  build(params, ctx): PartPiece[] {
     const board = new THREE.ExtrudeGeometry(boardShape(params), {
       depth: params.boardThickness,
       bevelEnabled: false,
-      curveSegments: 8,
+      curveSegments: ctx.detail === 'high' ? 8 : 3,
     });
 
     const pieces: PartPiece[] = [{ name: 'board', geometry: board, material: 'pcb' }];
@@ -823,20 +891,26 @@ export const ultrasonic: PartDef<UltrasonicParams> = {
         params.transducerRadius,
         params.transducerRadius,
         0.0062,
-        SEGMENTS,
+        ctx.segments,
       );
       can.rotateX(Math.PI / 2);
       can.translate(x, 0, params.boardThickness + 0.0031);
       pieces.push({ name: `transducer-${index}`, geometry: can, material: 'metal' });
 
-      const grille = new THREE.CircleGeometry(params.transducerRadius * 0.9, SEGMENTS);
-      grille.translate(x, 0, params.boardThickness + 0.0062);
-      pieces.push({ name: `grille-${index}`, geometry: grille, material: 'mesh' });
+      // The grille disc is cosmetic — it reads as a flat face at low detail.
+      if (ctx.detail === 'high') {
+        const grille = new THREE.CircleGeometry(params.transducerRadius * 0.9, ctx.segments);
+        grille.translate(x, 0, params.boardThickness + 0.0062);
+        pieces.push({ name: `grille-${index}`, geometry: grille, material: 'mesh' });
+      }
     }
 
-    const header = new THREE.BoxGeometry(0.0102, 0.0025, 0.0025);
-    header.translate(0, -params.boardHeight / 2 + 0.0015, params.boardThickness + 0.001);
-    pieces.push({ name: 'header', geometry: header, material: 'gold' });
+    // The pin header is cosmetic at distance — millimetre detail on a 45mm board.
+    if (ctx.detail === 'high') {
+      const header = new THREE.BoxGeometry(0.0102, 0.0025, 0.0025);
+      header.translate(0, -params.boardHeight / 2 + 0.0015, params.boardThickness + 0.001);
+      pieces.push({ name: 'header', geometry: header, material: 'gold' });
+    }
 
     return pieces;
   },
@@ -846,7 +920,7 @@ export const ultrasonic: PartDef<UltrasonicParams> = {
 - [ ] **Step 8: Run it to verify it passes**
 
 Run: `npm test -- tests/ultrasonic.test.ts`
-Expected: PASS, 5 tests.
+Expected: PASS, 6 tests.
 
 - [ ] **Step 9: Write `src/parts/registry.ts`**
 
@@ -1142,7 +1216,150 @@ git commit -m "feat: add Tier 2 procedural studio lighting and part rendering"
 
 ---
 
-## Task 7: Enforce the performance and zero-asset budgets
+## Task 7: Level of detail and focus upgrade
+
+**Files:**
+- Create: `src/scene/focus.ts`, `src/scene/PartLOD.tsx`
+- Modify: `src/scene/PartView.tsx`
+- Test: `tests/focus.test.ts`
+
+**Interfaces:**
+- Consumes: `buildPart` (Task 3), `PartView` (Task 6), `DetailLevel` (Task 2).
+- Produces: `resolveDetail(partId: string, focusedId: string | null): DetailLevel` from `src/scene/focus.ts`, and the `<PartLOD partId params focusedId />` component from `src/scene/PartLOD.tsx`.
+
+Distance-based LOD uses drei's `<Detailed>` wrapper, which delegates to THREE.LOD. The `hysteresis` prop is drei's and THREE.LOD's built-in guard against flicker at the switch boundary — we do not hand-roll one. Three.js frustum-culls every object by default, so parts outside the camera view already cost nothing to draw; `<Detailed>` exists for parts that *are* visible but small or distant.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `tests/focus.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { resolveDetail } from '../src/scene/focus';
+
+describe('resolveDetail', () => {
+  it('resolves a focused part to high detail', () => {
+    expect(resolveDetail('hc-sr04', 'hc-sr04')).toBe('high');
+  });
+
+  it('resolves an unfocused part to low detail', () => {
+    expect(resolveDetail('hc-sr04', 'wheel-65')).toBe('low');
+  });
+
+  it('resolves every part to low when focus is null', () => {
+    expect(resolveDetail('hc-sr04', null)).toBe('low');
+    expect(resolveDetail('wheel-65', null)).toBe('low');
+  });
+});
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `npm test -- tests/focus.test.ts`
+Expected: FAIL — cannot resolve `../src/scene/focus`.
+
+- [ ] **Step 3: Write `src/scene/focus.ts`**
+
+```ts
+import type { DetailLevel } from '../parts/types';
+
+/**
+ * Maps a part id and the currently focused part to a DetailLevel.
+ *
+ * This override is safe even though the global quality tier never auto-upgrades:
+ * it is user-initiated (selection/focus), bounded to a single part at a time,
+ * and is not driven by measured framerate, so it is not a feedback loop and
+ * cannot oscillate.
+ */
+export function resolveDetail(partId: string, focusedId: string | null): DetailLevel {
+  if (focusedId === partId) return 'high';
+  return 'low';
+}
+```
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `npm test -- tests/focus.test.ts`
+Expected: PASS, 3 tests.
+
+- [ ] **Step 5: Modify `src/scene/PartView.tsx`**
+
+Add an optional `detail?: DetailLevel` prop defaulting to `'high'`, passed as the third argument to `buildPart`:
+
+```tsx
+import { useMemo } from 'react';
+import { buildPart } from '../geometry/buildPart';
+import { createPalette } from '../materials/palette';
+import { getPart } from '../parts/registry';
+import type { DetailLevel } from '../parts/types';
+
+interface PartViewProps {
+  partId: string;
+  params?: Record<string, number>;
+  detail?: DetailLevel;
+}
+
+export function PartView({ partId, params, detail = 'high' }: PartViewProps) {
+  const palette = useMemo(() => createPalette(), []);
+  const built = useMemo(
+    () => buildPart(getPart(partId), params as never, detail),
+    [partId, params, detail],
+  );
+
+  return (
+    <group>
+      {built.pieces.map((piece) => (
+        <mesh
+          key={piece.name}
+          geometry={piece.geometry}
+          material={palette[piece.material]}
+          castShadow
+          receiveShadow
+        />
+      ))}
+    </group>
+  );
+}
+```
+
+- [ ] **Step 6: Write `src/scene/PartLOD.tsx`**
+
+```tsx
+import { Detailed } from '@react-three/drei';
+import { PartView } from './PartView';
+
+interface PartLODProps {
+  partId: string;
+  params?: Record<string, number>;
+  focusedId: string | null;
+}
+
+export function PartLOD({ partId, params, focusedId }: PartLODProps) {
+  if (focusedId === partId) {
+    return <PartView partId={partId} params={params} detail="high" />;
+  }
+
+  return (
+    <Detailed distances={[0, 0.35]} hysteresis={0.15}>
+      <PartView partId={partId} params={params} detail="high" />
+      <PartView partId={partId} params={params} detail="low" />
+    </Detailed>
+  );
+}
+```
+
+When `focusedId === partId`, the component bypasses `<Detailed>` entirely and returns `<PartView partId={partId} params={params} detail="high" />` directly, so a selected part is always full quality regardless of camera distance.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/scene/focus.ts src/scene/PartLOD.tsx src/scene/PartView.tsx tests/focus.test.ts
+git commit -m "feat: add part LOD and focus-based detail override"
+```
+
+---
+
+## Task 8: Enforce the performance and zero-asset budgets
 
 **Files:**
 - Create: `tests/budget.test.ts`
@@ -1214,39 +1431,9 @@ git commit -m "test: enforce triangle, draw call, and zero-asset budgets in CI"
 
 ---
 
-## Task 8: Update the PRD to match the design
-
-**Files:**
-- Modify: `PRD.md`
-
-**Interfaces:**
-- Consumes: the twelve edits listed in §14 of the design spec.
-- Produces: a PRD that no longer contradicts the spec. No code depends on this.
-
-- [ ] **Step 1: Apply the twelve edits**
-
-Work through §14 of `docs/superpowers/specs/2026-07-26-roboarena-visual-fidelity-and-app-shell-design.md` in order. Each item names the PRD section and the change. The two most important, because the current PRD actively contradicts the built code:
-
-1. §9.1 — delete the `three-bvh-csg` row; add rows for drei `Environment`/`Lightformer`, `ContactShadows`, and `three-mesh-bvh`.
-2. §7.1 — replace "drag-and-drop part placement" with select-then-tap, and the fixed snap-point model with grid placement on mounting surfaces.
-
-- [ ] **Step 2: Verify no contradictions remain**
-
-Run: `rg -n "three-bvh-csg|drag-and-drop|glTF|Draco" PRD.md`
-Expected: no hits describing them as part of the chosen stack. Mentions in "deliberately not in the stack" prose are fine.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add PRD.md
-git commit -m "docs: align PRD with approved design spec"
-```
-
----
-
 ## Plan Self-Review
 
-**Spec coverage:** §3 Tier 2 fidelity → Tasks 5, 6. §4 module boundaries → Tasks 2, 3, 6 (one file per unit, `buildPart` is the sole caller of `def.build()`). §11 grid placement → Task 4 (`MountSurface`) and Task 5 (`footprint`); the placement *interaction* belongs to the Build-mode plan, not this one. §12 error handling → partially covered (`getPart` throws a helpful error); the grey-bounding-box fallback belongs to the Build-mode plan since it needs a scene to render into. §13 testing → Tasks 4–7. §14 PRD edits → Task 8.
+**Spec coverage:** §3 Tier 2 fidelity → Tasks 5, 6. §4 module boundaries → Tasks 2, 3, 6 (one file per unit, `buildPart` is the sole caller of `def.build()`). §11 grid placement → Task 4 (`MountSurface`) and Task 5 (`footprint`); the placement *interaction* belongs to the Build-mode plan, not this one. §12 error handling → partially covered (`getPart` throws a helpful error); the grey-bounding-box fallback belongs to the Build-mode plan since it needs a scene to render into. §13 testing → Tasks 4–8. Detail levels (`DetailLevel`, low/high geometry) → Tasks 2, 3, 5, and 7.
 
 **Deliberately deferred to later plans:** tap-to-place and nudge controls, pin auto-assignment and the wiring panel, the code editor and assistance ladder, the emulator, sensor overlays and replay, export, and the Groq proxy. Each needs this foundation first.
 
