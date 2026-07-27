@@ -7,15 +7,22 @@ description: Standing engineering rules for RoboArena. Use when implementing par
 
 ## Git identity
 
-Commit as `Troy-LL <Troy-LL@users.noreply.github.com>`. No global git config on this machine. Always set **both** author and committer (GitHub rejects pushes that publish a private email as committer):
+Commit as `Troy-LL <Troy-LL@users.noreply.github.com>`. No global git config on this machine. Always set **both** author and committer (GitHub rejects pushes that publish a private email as committer).
 
-```bash
-git -c user.name="Troy-LL" -c user.email="Troy-LL@users.noreply.github.com" `
-  -c committer.name="Troy-LL" -c committer.email="Troy-LL@users.noreply.github.com" `
-  commit -m "..."
+**Timezone:** author and committer dates must use **GMT+8 (`+0800`)**, not the machine’s local Pacific TZ. Set both date env vars on every commit:
+
+```powershell
+$stamp = [DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(8)).ToString('yyyy-MM-dd HH:mm:ss') + ' +0800'
+$env:GIT_AUTHOR_NAME = 'Troy-LL'
+$env:GIT_AUTHOR_EMAIL = 'Troy-LL@users.noreply.github.com'
+$env:GIT_COMMITTER_NAME = 'Troy-LL'
+$env:GIT_COMMITTER_EMAIL = 'Troy-LL@users.noreply.github.com'
+$env:GIT_AUTHOR_DATE = $stamp
+$env:GIT_COMMITTER_DATE = $stamp
+git -c user.name=Troy-LL -c user.email=Troy-LL@users.noreply.github.com commit -m "..."
 ```
 
-Or export `GIT_AUTHOR_*` and `GIT_COMMITTER_*` to the same noreply values before committing. Never add `Co-Authored-By` lines. Never use a personal `@gmail.com` (or other private) address on commits.
+Never add `Co-Authored-By` lines. Never use a personal `@gmail.com` (or other private) address on commits.
 
 ## Search open source first
 

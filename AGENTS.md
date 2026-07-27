@@ -6,6 +6,8 @@ Commit as GitHub username **Troy-LL** (`Troy-LL <Troy-LL@users.noreply.github.co
 This machine has no global git identity set; pass it per-command with
 `git -c user.name=... -c user.email=... commit` rather than writing to git config.
 
+Stamp every commit in **GMT+8 (`+0800`)** via `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` (this Windows box is Pacific; do not use local TZ). Recipe: `.cursor/skills/roboarena-engineering/SKILL.md`.
+
 Never add a `Co-Authored-By` line.
 
 ### Branches, commits, merges

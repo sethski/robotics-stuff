@@ -4,7 +4,7 @@ This file is the **project** override. When working in this repo, it wins over g
 
 ## Identity
 
-Commit as **Troy-LL** (`Troy-LL@users.noreply.github.com`) for both author and committer. Never add `Co-Authored-By`.
+Commit as **Troy-LL** (`Troy-LL@users.noreply.github.com`) for both author and committer. Never add `Co-Authored-By`. Stamp commit times in **GMT+8 (`+0800`)**, not Pacific — see `.cursor/skills/roboarena-engineering/SKILL.md`.
 
 ## Delivery workflow (required)
 

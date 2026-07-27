@@ -84,7 +84,9 @@ Task N: complete (branch feat/task-N-..., commits <base7>..<head7>, PR <url>, me
 
 ## Dispatch
 
-Use `subagent_type: "poteto-agent"` for implementers and fixers in poteto-mode.
+Use `subagent_type: "generalPurpose"` (or `poteto-agent` if available) for implementers and fixers.
+
+**Models:** Grok orchestrates (controller). Implementers and fixers run on **composer 2.5** (`composer-2.5-fast`). Do not inherit the orchestrator model for coding subagents.
 
 Each implementer prompt must include:
 
