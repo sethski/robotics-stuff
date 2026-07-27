@@ -7,13 +7,15 @@ description: Standing engineering rules for RoboArena. Use when implementing par
 
 ## Git identity
 
-Commit as `Troy-LL <Troy-LL@users.noreply.github.com>`. No global git config on this machine. Always:
+Commit as `Troy-LL <Troy-LL@users.noreply.github.com>`. No global git config on this machine. Always set **both** author and committer (GitHub rejects pushes that publish a private email as committer):
 
 ```bash
-git -c user.name="Troy-LL" -c user.email="Troy-LL@users.noreply.github.com" commit -m "..."
+git -c user.name="Troy-LL" -c user.email="Troy-LL@users.noreply.github.com" `
+  -c committer.name="Troy-LL" -c committer.email="Troy-LL@users.noreply.github.com" `
+  commit -m "..."
 ```
 
-Never add `Co-Authored-By` lines.
+Or export `GIT_AUTHOR_*` and `GIT_COMMITTER_*` to the same noreply values before committing. Never add `Co-Authored-By` lines. Never use a personal `@gmail.com` (or other private) address on commits.
 
 ## Search open source first
 
