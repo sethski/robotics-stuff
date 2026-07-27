@@ -11,7 +11,7 @@ Never commit product work on `master`. Use `.worktrees/` for isolation.
 
 ## Branch graph (required)
 
-Every plan task (and every parallel component slice) gets its **own branch** off the current integration tip.
+Every plan task (and every parallel component slice) gets its **own branch**.
 
 Naming:
 
@@ -20,9 +20,9 @@ feat/task-<N>-<short-slug>
 feat/task-<N>a-<short-slug>   # parallel slice
 ```
 
-Examples: `feat/task-2-partdef-palette`, `feat/task-4-chassis`, `feat/task-5a-wheel-ultrasonic`.
+Examples: `feat/task-2-partdef-palette`, `feat/task-4-chassis`, `feat/task-5a-wheel`.
 
-**Integration branch** (e.g. `feat/part-system-foundation`) only receives merges. Implementers do not commit directly on it.
+Base off current `master`, **or** off a parent task branch tip when you depend on work that is pushed but not yet merged (stacked branches). Implementers do not commit on `master`.
 
 ## Granular commits (required)
 
@@ -34,41 +34,48 @@ One logical change per commit. A single task usually produces **multiple** commi
 
 Never squash a whole task into one commit unless the user asks.
 
-Author every commit as Troy-LL per `roboarena-engineering`.
+Author every commit as Troy-LL per `roboarena-engineering` (including GMT+8 stamps).
 
 ## Dependency DAG and parallel waves
 
 Schedule from the plan’s file dependencies, not from task number alone.
 
 - **Serial spine:** shared types, cache, package scaffolding (one writer).
-- **Parallel wave:** disjoint files only (e.g. chassis vs wheel/ultrasonic). Two worktrees or two branches off the same base. Neither touches the join file (e.g. `registry.ts`) until both land.
-- **Join task:** registry / wiring / budget tests after the wave merges.
+- **Parallel wave:** disjoint files only (e.g. wheel vs ultrasonic). Two worktrees or two branches off the same base.
+- **Join task:** registry / wiring / budget tests after the parallel branches are **pushed** (branch the join off the needed parent tips; do not merge to `master` just to unblock).
 
 Never run two implementers that write the same path at once.
 
-## Sequential push, PR, review, merge (required)
+## Phase A — push all branches first (required)
 
-Never merge a task branch locally into the integration branch. Landing is always:
+**Do not merge a task as soon as it finishes.** For the current plan wave:
 
-1. Push the task branch only: `git push -u origin HEAD`.
-2. Open a PR into the **integration branch** (e.g. `feat/part-system-foundation`), not directly into `master`.
-   Use `gh pr create` with a short summary and test plan.
-3. Controller reviews the PR (diff + checks). Fix via the task branch until the review is clean.
-4. Merge **through that PR** (`gh pr merge`), one PR at a time.
-5. Promote to default branch: open/merge a PR from the **integration branch → `master`** so landed work is always on `master` too. Do not leave finished task merges only on the integration branch.
-6. Resolve any merge conflicts on the PR before merging. Do not start the next task PR until this task’s integration merge **and** the `master` promote are done.
-7. Update `.superpowers/sdd/progress.md` with branch name, commit range, task PR URL, master promote PR URL, and merge SHAs.
+1. Implement + granular commits on the task branch only.
+2. Push: `git push -u origin HEAD`.
+3. Optionally open a **draft** PR into `master` for later review — leave it unmerged.
+4. Update ledger: `Task N: pushed (branch …, commits …, PR <url or none>, awaiting batch merge)`.
+5. Continue the next task.
 
-Parallel **coding** is fine. Parallel **PRs landing** is not. Do not open-and-merge several task PRs in one batch.
+## Phase B — merge to master one-by-one (only after the wave is done)
 
-Order for this foundation plan after Task 3:
+When **all** task branches for the wave are pushed and review-clean:
+
+1. Merge into `master` **one PR/branch at a time**, in dependency order.
+2. Resolve conflicts on that merge before starting the next.
+3. Parallel landing is forbidden.
+4. Update the ledger with merge SHAs after each merge.
+
+Never local-merge task branches into `master`. Never open-and-merge several task PRs in one batch.
+
+Order for remaining foundation work (push all first; merge only in Phase B):
 
 ```
-PR+merge task-4-chassis
-then PR+merge task-5a-wheel-ultrasonic
-then task-5b-registry (new branch off updated integration)
-then task-6 → task-7 → task-8
+push task-5b-registry
+push task-6 → task-7 → task-8
+then Phase B: merge 5b → 6 → 7 → 8 into master, one at a time
 ```
+
+(Tasks 1–5a already merged under the old immediate-merge rule; do not rewrite that history.)
 
 ## Progress ledger
 
@@ -76,10 +83,16 @@ Path: `.superpowers/sdd/progress.md` (under `.superpowers/`, gitignored).
 
 Before dispatch, read the ledger. Do not re-dispatch completed tasks.
 
-After a clean review and PR merge:
+After push (Phase A):
 
 ```
-Task N: complete (branch feat/task-N-..., commits <base7>..<head7>, PR <url>, merged <sha>, review clean)
+Task N: pushed (branch feat/task-N-..., commits <base7>..<head7>, PR <url or none>, awaiting batch merge)
+```
+
+After Phase B merge:
+
+```
+Task N: merged to master (PR <url>, merge <sha>, review clean)
 ```
 
 ## Dispatch
@@ -93,7 +106,8 @@ Each implementer prompt must include:
 - base SHA / branch to create from
 - their exclusive file paths
 - “granular commits, not one commit for the whole task”
-- “do not commit on the integration branch”
+- “do not commit on master”
+- “push only — do not merge; controller batches merges in Phase B”
 
 Hand requirements as a brief file. Report path in the prompt. Chat return is status only.
 
