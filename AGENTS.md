@@ -12,13 +12,14 @@ Never add a `Co-Authored-By` line.
 
 ### Branches, commits, merges
 
-- One **branch per plan task / component slice** (`feat/task-N-slug`). Do not commit product work on `master` or directly on the integration branch.
+- One **branch per plan task / component slice** (`feat/task-N-slug`). Do not commit product work on `master`.
 - **Granular commits** inside each branch (test → implement → polish). Not one commit per task.
 - **Parallel coding** only on disjoint files (dependency DAG).
-- **Landing:** push the task branch, open a **PR into the integration branch**, review it, then **merge through that PR**. Never local-merge task branches. One PR at a time.
+- **Phase A:** push all task branches (draft PRs OK). Do **not** merge as each task finishes.
+- **Phase B:** when the whole wave is done, merge into `master` **one branch at a time** (dependency order).
 - Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`
 - Always-on Cursor rule: `.cursor/rules/roboarena-sdd-workflow.mdc`
-- Project Claude override: `CLAUDE.md` (wins over global Claude instructions for this repo)
+- Project Claude override: `CLAUDE.md`
 
 ## Standing engineering rules
 

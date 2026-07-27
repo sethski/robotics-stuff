@@ -1,5 +1,5 @@
 ---
-description: RoboArena SDD workflow — task branches, granular commits, sequential PRs
+description: RoboArena SDD workflow — task branches, granular commits, deferred sequential merges
 alwaysApply: true
 ---
 
@@ -8,11 +8,11 @@ alwaysApply: true
 ## Branches
 
 - Never commit product work on `master`.
-- Keep a long-lived **integration branch** (e.g. `feat/part-system-foundation`).
-- Every plan task / component slice gets its **own branch** off the current integration tip:
+- Every plan task / component slice gets its **own branch**:
   - `feat/task-<N>-<slug>`
   - `feat/task-<N>a-<slug>` for a parallel slice
-- Implementers commit only on their task branch, never on the integration branch.
+- Base: current `master` tip, **or** a parent task branch tip when the task depends on unfinished sibling work (stack the branch; do not merge early just to unblock).
+- Implementers commit only on their task branch.
 
 ## Granular commits
 
@@ -28,18 +28,26 @@ Author **and** committer must be `Troy-LL <Troy-LL@users.noreply.github.com>` (G
 
 Stamp every commit in **GMT+8 (`+0800`)** with `GIT_AUTHOR_DATE` / `GIT_COMMITTER_DATE` — this machine’s local TZ is Pacific and must not be used. Recipe in `.cursor/skills/roboarena-engineering/SKILL.md`.
 
-## Parallel coding, sequential landing
+## Phase A — develop and push (no merges)
 
-- Parallel **coding** only on disjoint file sets (dependency DAG).
-- Parallel **landing** is forbidden.
-- After review-clean work on a task branch:
+While any plan tasks remain unfinished:
 
-  1. `git push -u origin HEAD`
-  2. `gh pr create` into the **integration branch** (not directly into `master`)
-  3. Controller reviews the PR
-  4. `gh pr merge` through that PR
-  5. Promote: open/merge a PR from the **integration branch → `master`** so `master` stays current
-  6. Only then start the next task merge
+1. Implement on the task branch (granular commits).
+2. `git push -u origin HEAD`.
+3. Optionally open a PR into `master` as **draft** / leave unmerged for review later.
+4. **Do not merge** the task branch into `master` (or integration) yet.
+5. Start the next task (parallel only on disjoint files / worktrees).
+
+Mark the ledger: `pushed, awaiting batch merge`.
+
+## Phase B — sequential land to master (only when all branches for the plan wave are done)
+
+When every task branch for the current plan wave is pushed and review-clean:
+
+1. Merge **one branch at a time** into `master` (via `gh pr merge` or equivalent), in dependency order.
+2. Finish that merge (resolve conflicts on that PR) before starting the next.
+3. Parallel **coding** was fine; parallel **landing** is still forbidden.
+4. Do not promote mid-wave. No merge-after-each-task.
 
 ## Models
 
