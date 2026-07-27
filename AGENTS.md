@@ -14,7 +14,9 @@ Never add a `Co-Authored-By` line.
 - **Granular commits** inside each branch (test → implement → polish). Not one commit per task.
 - **Parallel coding** only on disjoint files (dependency DAG).
 - **Landing:** push the task branch, open a **PR into the integration branch**, review it, then **merge through that PR**. Never local-merge task branches. One PR at a time.
-- Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`.
+- Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`
+- Always-on Cursor rule: `.cursor/rules/roboarena-sdd-workflow.mdc`
+- Project Claude override: `CLAUDE.md` (wins over global Claude instructions for this repo)
 
 ## Standing engineering rules
 
