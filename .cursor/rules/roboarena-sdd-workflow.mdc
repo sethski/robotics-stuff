@@ -33,10 +33,11 @@ Author **and** committer must be `Troy-LL <Troy-LL@users.noreply.github.com>` (G
 - After review-clean work on a task branch:
 
   1. `git push -u origin HEAD`
-  2. `gh pr create` into the **integration branch** (not `master` unless asked)
+  2. `gh pr create` into the **integration branch** (not directly into `master`)
   3. Controller reviews the PR
   4. `gh pr merge` through that PR
-  5. Only then start the next merge
+  5. Promote: open/merge a PR from the **integration branch → `master`** so `master` stays current
+  6. Only then start the next task merge
 
 ## Details
 
