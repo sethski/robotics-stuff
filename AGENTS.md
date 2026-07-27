@@ -12,7 +12,8 @@ Never add a `Co-Authored-By` line.
 
 - One **branch per plan task / component slice** (`feat/task-N-slug`). Do not commit product work on `master` or directly on the integration branch.
 - **Granular commits** inside each branch (test → implement → polish). Not one commit per task.
-- **Parallel coding** only on disjoint files (dependency DAG). **Sequential push + merge** into the integration branch so conflicts are cleaned one merge at a time.
+- **Parallel coding** only on disjoint files (dependency DAG).
+- **Landing:** push the task branch, open a **PR into the integration branch**, review it, then **merge through that PR**. Never local-merge task branches. One PR at a time.
 - Full procedure: `.cursor/skills/roboarena-sdd/SKILL.md`.
 
 ## Standing engineering rules

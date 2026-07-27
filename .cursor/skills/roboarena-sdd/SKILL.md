@@ -46,20 +46,25 @@ Schedule from the plan’s file dependencies, not from task number alone.
 
 Never run two implementers that write the same path at once.
 
-## Sequential push and merge (required)
+## Sequential push, PR, review, merge (required)
 
-After a task branch is review-clean:
+Never merge a task branch locally into the integration branch. Landing is always:
 
-1. `git push -u origin HEAD` for that task branch only.
-2. Merge into the integration branch **one branch at a time** (PR or local merge). Resolve conflicts on that merge before starting the next merge.
-3. Do not push or merge parallel branches “all at once.” Parallel **coding** is fine. Parallel **landing** is not.
-4. Update `.superpowers/sdd/progress.md` with branch name, commit range, and merge SHA.
+1. Push the task branch only: `git push -u origin HEAD`.
+2. Open a PR into the **integration branch** (e.g. `feat/part-system-foundation`), not into `master` unless the user asks.
+   Use `gh pr create` with a short summary and test plan.
+3. Controller reviews the PR (diff + checks). Fix via the task branch until the review is clean.
+4. Merge **through that PR** (`gh pr merge`), one PR at a time.
+5. Resolve any merge conflicts on the PR before merging. Do not start the next PR until this one is merged.
+6. Update `.superpowers/sdd/progress.md` with branch name, commit range, PR URL, and merge SHA.
+
+Parallel **coding** is fine. Parallel **PRs landing** is not. Do not open-and-merge several task PRs in one batch.
 
 Order for this foundation plan after Task 3:
 
 ```
-merge task-4-chassis
-then merge task-5a-wheel-ultrasonic
+PR+merge task-4-chassis
+then PR+merge task-5a-wheel-ultrasonic
 then task-5b-registry (new branch off updated integration)
 then task-6 → task-7 → task-8
 ```
@@ -70,10 +75,10 @@ Path: `.superpowers/sdd/progress.md` (under `.superpowers/`, gitignored).
 
 Before dispatch, read the ledger. Do not re-dispatch completed tasks.
 
-After a clean review and merge:
+After a clean review and PR merge:
 
 ```
-Task N: complete (branch feat/task-N-..., commits <base7>..<head7>, merged <sha>, review clean)
+Task N: complete (branch feat/task-N-..., commits <base7>..<head7>, PR <url>, merged <sha>, review clean)
 ```
 
 ## Dispatch
